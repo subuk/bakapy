@@ -1,0 +1,104 @@
+#
+# Пример задания
+#
+example:
+  #
+  # Временно отключить задание
+  #
+  disabled: true
+
+  #
+  # Папка этой задачи в хранилище. Файлы будут создаваться
+  # не в ${storage_dir}/, а в ${storage_dir}/${namespace}/
+  # Если не указано или пустое, предполагается что namespace
+  # равен имени задачи. Если очень хочется писать прямо в ${storage_dir},
+  # можно указать:
+  #
+  #   namespace: /../
+  #
+  # Изначальное предназначение - сохранение инкрементальных и
+  # полных копий в одном месте.
+  #
+  namespace: example
+
+  #
+  # Хост, к которому выполняется подключение. Используется как
+  # аргументы для команды ssh, поэтому можно указывать любые опции
+  # которые понимаются этой командой.
+  #
+  host: 127.0.0.1
+
+  #
+  # Путь к команде. Вычисляется относительно парамертра command_dir
+  # в секции main
+  #
+  command: simple-command.sh
+
+  #
+  # Время хранения файлов задачи в днях
+  #
+  max_age_days: 1
+
+  #
+  # Спецификация времени выполнения задачи.
+  #
+  run_at:
+    minute: '*'
+    hour: '*'
+    day: '*'
+    month: '*'
+    weekday: '*'
+
+plesk-vhosts-full:
+  disabled: false
+  namespace: vhosts
+  host: 127.0.0.1
+  command: backup-plesk-vhosts.sh
+  max_age_days: 1
+  args:
+    vhosts_dir: /home/vhosts
+    backup_type: full
+    listed_incremental_dir: /tmp/backup-meta
+
+  run_at:
+    minute: '*'
+    hour: '*'
+    day: '*'
+    month: '*'
+    weekday: '*'
+
+plesk-vhosts-diff:
+  disabled: true
+  namespace: vhosts
+  host: 127.0.0.1
+  command: backup-plesk-vhosts.sh
+  max_age_days: 1
+  args:
+    vhosts_dir: /home/vhosts
+    backup_type: diff
+    listed_incremental_dir: /tmp/backup-meta
+
+  run_at:
+    minute: '*'
+    hour: '*'
+    day: '*'
+    month: '*'
+    weekday: '*'
+
+plesk-vhosts-inc:
+  disabled: true
+  namespace: vhosts
+  host: 127.0.0.1
+  command: backup-plesk-vhosts.sh
+  max_age_days: 1
+  args:
+    vhosts_dir: /home/vhosts
+    backup_type: inc
+    listed_incremental_dir: /tmp/backup-meta
+
+  run_at:
+    minute: '*'
+    hour: '*'
+    day: '*'
+    month: '*'
+    weekday: '*'

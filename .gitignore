@@ -1,0 +1,6 @@
+/bin/
+/pkg/
+/vendor/pkg/
+/bakapy-scheduler
+*.sublime-project
+*.sublime-workspace
