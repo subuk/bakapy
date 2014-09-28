@@ -43,7 +43,7 @@ func (conn *StorageConn) ReadTaskId() error {
 	conn.SetDeadline(deadline)
 	conn.logger.Debug("reading task id until %s", deadline)
 
-	readed, err := conn.Read(taskId)
+	readed, err := io.ReadFull(conn, taskId)
 	conn.logger.Debug("readed %d bytes", readed)
 
 	if err != nil {
