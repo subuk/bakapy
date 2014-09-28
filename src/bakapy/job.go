@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"io"
-	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -45,7 +44,7 @@ func (jctx *JobTemplateContext) ToPort() string {
 type JobMetadataFile struct {
 	Name       string
 	Size       int64
-	SourceAddr net.Addr
+	SourceAddr string
 	StartTime  time.Time
 	EndTime    time.Time
 }
@@ -57,6 +56,7 @@ func (m *JobMetadataFile) String() string {
 
 type JobMetadata struct {
 	TaskId     TaskId
+	Command    string
 	Success    bool
 	Message    string
 	TotalSize  int64
@@ -70,6 +70,10 @@ type JobMetadata struct {
 	Output     []byte
 	Errput     []byte
 	Config     JobConfig
+}
+
+func (metadata *JobMetadata) Duration() time.Duration {
+	return metadata.EndTime.Sub(metadata.StartTime)
 }
 
 func (metadata *JobMetadata) Save(saveTo string) error {
@@ -172,6 +176,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 func (job *Job) Run() *JobMetadata {
 	metadata := &JobMetadata{
 		Pid:       os.Getpid(),
+		Command:   job.cfg.Command,
 		Config:    job.cfg,
 		StartTime: time.Now(),
 		TaskId:    TaskId(uuid.NewUUID().String()),
@@ -179,7 +184,7 @@ func (job *Job) Run() *JobMetadata {
 	}
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", job.Name, metadata.TaskId)
 	job.logger = logging.MustGetLogger(loggerName)
-	job.logger.Info("starting up with id %s", metadata.TaskId)
+	job.logger.Info("starting up")
 
 	script, err := job.GetScript(metadata)
 	metadata.Script = script

@@ -70,6 +70,10 @@ func (conn *StorageConn) ReadTaskId() error {
 	conn.logger.Debug("task id '%s' successfully readed.", taskId)
 	conn.jobEvent = jobEvent
 	conn.state = STATE_WAIT_FILENAME
+
+	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.RemoteAddr().String(), conn.TaskId)
+	conn.logger = logging.MustGetLogger(loggerName)
+
 	return nil
 }
 
@@ -127,7 +131,7 @@ func (conn *StorageConn) SaveFile() error {
 
 	fileMeta := JobMetadataFile{
 		Name:       conn.CurrentFilename,
-		SourceAddr: conn.RemoteAddr(),
+		SourceAddr: conn.RemoteAddr().String(),
 		StartTime:  time.Now(),
 	}
 

@@ -51,7 +51,7 @@ func (stor *Storage) Listen() net.Listener {
 				stor.logger.Error("Error during accept() call: %v", err)
 				return
 			}
-			stor.logger.Info("New connection from %s", conn.RemoteAddr().String())
+			stor.logger.Debug("new connection from %s", conn.RemoteAddr().String())
 
 			loggerName := fmt.Sprintf("bakapy.storage.conn[%s]", conn.RemoteAddr().String())
 			logger := logging.MustGetLogger(loggerName)
@@ -74,6 +74,7 @@ func (stor *Storage) Serve(ln net.Listener) {
 	for {
 		select {
 		case event := <-stor.JobsChan:
+			stor.logger.Info("new job %s", event.TaskId)
 			stor.CurrentJobs[event.TaskId] = event
 		case conn := <-stor.connections:
 			go stor.handleConnection(conn)
@@ -96,7 +97,7 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	}
 
 	if conn.CurrentFilename == JOB_FINISH {
-		conn.logger.Info("got magic word '%s' as filename - job finished", JOB_FINISH)
+		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
 		delete(stor.CurrentJobs, conn.TaskId)
 		return
 	}

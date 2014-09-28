@@ -24,7 +24,7 @@ func setupLogging() error {
 	if err != nil {
 		return err
 	}
-	logging.SetLevel(level, "bakapy.scheduler")
+	logging.SetLevel(level, "")
 	return nil
 }
 
