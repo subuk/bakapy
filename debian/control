@@ -1,0 +1,11 @@
+Source: bakapy
+Maintainer: Matvey Kruglov <kubuzzzz@gmail.com>
+Section: Backup
+Priority: optional
+Build-Depends: cdbs
+Standards-Version: 3.9.1
+
+Package: bakapy
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Bakapy backup framework
