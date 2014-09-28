@@ -12,7 +12,9 @@ type Config struct {
 	Listen      string
 	StorageDir  string    `yaml:"storage_dir"`
 	MetadataDir string    `yaml:"metadata_dir"`
+	SSHBin      string    `yaml:"ssh_bin"`
 	StatusDir   string    `yaml:"status_dir"`
+	CommandDir  string    `yaml:"command_dir"`
 	Ports       PortRange `yaml:"port_range"`
 	Options     GlobalOptions
 	Jobs        map[string]JobConfig
@@ -49,6 +51,7 @@ func (p *PortRange) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type RunAtSpec struct {
+	Second  string
 	Minute  string
 	Hour    string
 	Day     string
@@ -57,8 +60,12 @@ type RunAtSpec struct {
 }
 
 func (r *RunAtSpec) SchedulerString() string {
+	if r.Second == "" {
+		r.Second = "0"
+	}
 	return fmt.Sprintf(
-		"20 %s %s %s %s %s",
+		"%s %s %s %s %s %s",
+		r.Second,
 		r.Minute,
 		r.Hour,
 		r.Day,
@@ -68,10 +75,12 @@ func (r *RunAtSpec) SchedulerString() string {
 }
 
 type JobConfig struct {
+	Sudo       bool
 	Disabled   bool
 	MaxAgeDays int `yaml:"max_age_days"`
 	Namespace  string
 	Host       string
+	Port       uint
 	Command    string
 	Args       map[string]string
 	RunAt      RunAtSpec `yaml:"run_at"`

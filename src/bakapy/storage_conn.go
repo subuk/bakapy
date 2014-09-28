@@ -6,6 +6,9 @@ import (
 	"github.com/op/go-logging"
 	"io"
 	"net"
+	"os"
+	"path"
+	"strconv"
 	"time"
 )
 
@@ -14,8 +17,10 @@ type StorageConnState uint8
 type StorageConn struct {
 	net.Conn
 
-	JobMeta         *JobMetadata
 	CurrentFilename string
+	BytesReaded     int
+	TaskId          TaskId
+	jobEvent        StorageNewJobEvent
 	stor            *Storage
 	logger          *logging.Logger
 	state           StorageConnState
@@ -41,8 +46,8 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	deadline := time.Now().Add(time.Second * STORAGE_AUTH_TIMEOUT)
 	conn.SetDeadline(deadline)
-	conn.logger.Debug("reading task id until %s", deadline)
 
+	conn.logger.Debug("reading task id until %s", deadline)
 	readed, err := io.ReadFull(conn, taskId)
 	conn.logger.Debug("readed %d bytes", readed)
 
@@ -55,39 +60,92 @@ func (conn *StorageConn) ReadTaskId() error {
 		}
 
 	}
-
-	jobMeta, exist := conn.stor.CurrentJobs[TaskId(taskId)]
+	conn.TaskId = TaskId(taskId)
+	jobEvent, exist := conn.stor.CurrentJobs[conn.TaskId]
 	if !exist {
-		msg := fmt.Sprintf("Cannot find task id '%s' in current job list (%s), closing connection", taskId, conn.stor.GetPlannedJobIds())
+		msg := fmt.Sprintf("Cannot find task id '%s' in current job list (%s), closing connection", taskId, conn.stor.GetCurrentJobIds())
 		return errors.New(msg)
 	}
 
-	conn.logger.Debug("task id '%s' successfully readed.", jobMeta.TaskId)
-	conn.JobMeta = jobMeta
+	conn.logger.Debug("task id '%s' successfully readed.", taskId)
+	conn.jobEvent = jobEvent
 	conn.state = STATE_WAIT_FILENAME
 	return nil
 }
 
 func (conn *StorageConn) ReadFilename() error {
-	if conn.state != STATE_WAIT_TASK_ID {
+	if conn.state != STATE_WAIT_FILENAME {
 		msg := fmt.Sprintf("protocol error - cannot read filename in state %d", conn.state)
 		return errors.New(msg)
 	}
+	conn.logger.Debug("reading filename length")
+	var rawFilenameLen = make([]byte, STORAGE_FILENAME_LEN_LEN)
+	readed, err := io.ReadFull(conn, rawFilenameLen)
+	if err != nil {
+		return err
+	}
+	conn.logger.Debug("readed %d bytes: %s", readed, rawFilenameLen)
 
-	//
+	filenameLen, err := strconv.ParseInt(string(rawFilenameLen), 10, 64)
+	if err != nil {
+		return err
+	}
 
+	var filename = make([]byte, filenameLen)
+	readed, err = io.ReadFull(conn, filename)
+	if err != nil {
+		return err
+	}
+	conn.logger.Debug("readed %d bytes: %s", readed, filename)
+
+	conn.CurrentFilename = string(filename)
 	conn.state = STATE_WAIT_DATA
 	return nil
 }
 
-func (conn *StorageConn) FileSave() error {
+func (conn *StorageConn) SaveFile() error {
 	if conn.state != STATE_WAIT_DATA {
 		msg := fmt.Sprintf("protocol error - cannot read data in state %d", conn.state)
 		return errors.New(msg)
 	}
-	conn.state = STATE_RECEIVING
-	//
+	savePath := path.Join(
+		conn.stor.RootDir,
+		conn.jobEvent.Namespace,
+		conn.CurrentFilename,
+	)
+	conn.logger.Info("saving file %s", savePath)
+	err := os.MkdirAll(path.Dir(savePath), 0750)
+	if err != nil {
+		return err
+	}
 
+	file, err := os.Create(savePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fileMeta := JobMetadataFile{
+		Name:       conn.CurrentFilename,
+		SourceAddr: conn.RemoteAddr(),
+		StartTime:  time.Now(),
+	}
+
+	conn.state = STATE_RECEIVING
+
+	written, err := io.Copy(file, conn)
+	if err != nil {
+		return err
+	}
+
+	fileMeta.Size = written
+	fileMeta.EndTime = time.Now()
+	conn.jobEvent.FileAddChan <- fileMeta
+
+	err = file.Sync()
+	if err != nil {
+		return err
+	}
 	conn.state = STATE_END
 	return nil
 }

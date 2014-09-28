@@ -4,15 +4,20 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"net"
+	"time"
 )
 
-type StorageTaskChan chan *JobMetadata
+type StorageNewJobEvent struct {
+	TaskId      TaskId
+	FileAddChan chan JobMetadataFile
+	Namespace   string
+}
 
 type Storage struct {
 	RootDir     string
-	CurrentJobs map[TaskId]*JobMetadata
+	CurrentJobs map[TaskId]StorageNewJobEvent
 	listenAddr  string
-	Tasks       StorageTaskChan
+	JobsChan    chan StorageNewJobEvent
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
@@ -20,8 +25,8 @@ type Storage struct {
 func NewStorage(cfg *Config) *Storage {
 	return &Storage{
 		RootDir:     cfg.StorageDir,
-		CurrentJobs: make(map[TaskId]*JobMetadata),
-		Tasks:       make(StorageTaskChan),
+		CurrentJobs: make(map[TaskId]StorageNewJobEvent),
+		JobsChan:    make(chan StorageNewJobEvent, 5),
 		connections: make(chan *StorageConn),
 		listenAddr:  cfg.Listen,
 		logger:      logging.MustGetLogger("bakapy.storage"),
@@ -57,7 +62,7 @@ func (stor *Storage) Listen() net.Listener {
 	return ln
 }
 
-func (stor *Storage) GetPlannedJobIds() []TaskId {
+func (stor *Storage) GetCurrentJobIds() []TaskId {
 	keys := make([]TaskId, 0, len(stor.CurrentJobs))
 	for k := range stor.CurrentJobs {
 		keys = append(keys, k)
@@ -68,8 +73,8 @@ func (stor *Storage) GetPlannedJobIds() []TaskId {
 func (stor *Storage) Serve(ln net.Listener) {
 	for {
 		select {
-		case jobMeta := <-stor.Tasks:
-			stor.CurrentJobs[jobMeta.TaskId] = jobMeta
+		case event := <-stor.JobsChan:
+			stor.CurrentJobs[event.TaskId] = event
 		case conn := <-stor.connections:
 			go stor.handleConnection(conn)
 		}
@@ -86,8 +91,24 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	}
 
 	if err = conn.ReadFilename(); err != nil {
-		conn.logger.Warning("cannot filename: %s. closing connection.", err)
+		conn.logger.Warning("cannot read filename: %s. closing connection", err)
 		return
 	}
 
+	if conn.CurrentFilename == JOB_FINISH {
+		conn.logger.Info("got magic word '%s' as filename - job finished", JOB_FINISH)
+		delete(stor.CurrentJobs, conn.TaskId)
+		return
+	}
+
+	if err = conn.SaveFile(); err != nil {
+		conn.logger.Warning("cannot save file: %s. closing connection", err)
+		return
+	}
+}
+
+func (stor *Storage) Wait() {
+	for len(stor.CurrentJobs) == 0 {
+		time.Sleep(time.Second * 2)
+	}
 }
