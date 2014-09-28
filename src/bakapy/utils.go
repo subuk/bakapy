@@ -21,10 +21,6 @@ func SetupLogging(logLevel string) error {
 }
 
 func RunJob(job *Job, config *Config, logger *logging.Logger) {
-	if job.IsDisabled() {
-		logger.Warning("job %s disabled, skipping", job.Name)
-		return
-	}
 	metadata := job.Run()
 	saveTo := path.Join(config.MetadataDir, string(metadata.TaskId))
 	err := metadata.Save(saveTo)

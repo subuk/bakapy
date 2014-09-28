@@ -10,8 +10,8 @@ import (
 )
 
 var logger = logging.MustGetLogger("bakapy.scheduler")
-var CONFIG_PATH = flag.String("config", "", "Path to config file")
-var LOG_LEVEL = flag.String("loglevel", "info", "Log level")
+var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
+var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 
 func main() {
 	flag.Parse()
@@ -39,6 +39,10 @@ func main() {
 			storage.JobsChan, config,
 		)
 		scheduler.AddFunc(runSpec, func() {
+			if job.IsDisabled() {
+				logger.Warning("job %s disabled, skipping", job.Name)
+				return
+			}
 			bakapy.RunJob(job, config, logger)
 		})
 	}
