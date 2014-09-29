@@ -3,10 +3,6 @@
 #
 
 #
-# Глобальные параметры.
-#
-
-#
 # Директория для хранение команд. Путь к команде в задаче
 # указывается относительно этого пути.
 #
@@ -23,23 +19,9 @@ storage_dir: /tmp/backups/storage
 metadata_dir: /tmp/backups/metadata
 
 #
-# Директория для хранения статуса текущих задач
-#
-status_dir: /dev/shm/bakupy-status
-
-#
 # Полный путь к команде ssh
 #
 ssh_bin: /usr/bin/ssh
-
-
-#
-# Диапазон портов, которые используются для передачи данных
-# с клиентов.
-#
-port_range:
-  start: 33100
-  end: 33300
 
 #
 # Пользователь и группа под которым выполняются задачи. Должен
@@ -54,46 +36,7 @@ group: root
 listen: 127.0.0.1:9876
 
 #
-# Дополнительные опции, которыми будут расширены конфигурации
-# каждой задачи.
-#
-options:
-  gzip: true
-  # Дополнительные аргуметы для всех комманд.
-  args:
-    vhosts_dir: /var/www/vhosts
-    hello: warold bla bla!
-
-#
 # Список файлов с определением задач (относительно этого файла)
 #
 include_jobs:
   - jobs.conf.ex.yaml
-
-#
-# Конфигурация ведения логов. Подробнее:
-#   http://docs.python.org/2/library/logging.config.html
-#
-logs:
-  version: 1
-  disable_existing_loggers: false
-  formatters:
-    default:
-      format: "[%(asctime)s] %(process)s %(name)s %(levelname)s: %(message)s"
-  handlers:
-    console:
-      level: DEBUG
-      class: logging.StreamHandler
-      formatter: default
-    file:
-      level: INFO
-      class: logging.handlers.RotatingFileHandler
-      filename: /tmp/backup.log
-      maxBytes: 16777216 # 16 Megabytes
-      formatter: default
-  loggers:
-    komtet:
-      level: DEBUG
-      handlers:
-        - file
-        - console
