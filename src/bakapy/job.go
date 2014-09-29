@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -56,6 +57,7 @@ func (m *JobMetadataFile) String() string {
 
 type JobMetadata struct {
 	JobName    string
+	Namespace  string
 	TaskId     TaskId
 	Command    string
 	Success    bool
@@ -96,6 +98,19 @@ func (metadata *JobMetadata) Save(saveTo string) error {
 		return err
 	}
 	return nil
+}
+
+func LoadJobMetadata(path string) (*JobMetadata, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	metadata := JobMetadata{}
+	err = json.Unmarshal(data, &metadata)
+	if err != nil {
+		return nil, err
+	}
+	return &metadata, nil
 }
 
 func NewJob(name string, cfg JobConfig, storJobs chan StorageNewJobEvent, globalConfig *Config) *Job {
@@ -193,6 +208,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 func (job *Job) Run() *JobMetadata {
 	metadata := &JobMetadata{
 		JobName:   job.Name,
+		Namespace: job.cfg.Namespace,
 		Pid:       os.Getpid(),
 		Command:   job.cfg.Command,
 		Config:    job.cfg,

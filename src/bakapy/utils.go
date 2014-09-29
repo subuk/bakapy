@@ -20,7 +20,7 @@ func SetupLogging(logLevel string) error {
 	return nil
 }
 
-func RunJob(job *Job, config *Config, logger *logging.Logger) {
+func RunJob(job *Job, config *Config, logger *logging.Logger) string {
 	metadata := job.Run()
 	saveTo := path.Join(config.MetadataDir, string(metadata.TaskId))
 	err := metadata.Save(saveTo)
@@ -33,4 +33,5 @@ func RunJob(job *Job, config *Config, logger *logging.Logger) {
 	} else {
 		logger.Info("job '%s' finished", job.Name)
 	}
+	return saveTo
 }

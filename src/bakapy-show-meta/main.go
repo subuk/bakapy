@@ -2,9 +2,7 @@ package main
 
 import (
 	"bakapy"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 )
@@ -17,19 +15,6 @@ func (a ByStartTime) Len() int           { return len(a) }
 func (a ByStartTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByStartTime) Less(i, j int) bool { return a[i].StartTime.Before(a[j].StartTime) }
 
-func readMetadata(metaPath string) (*bakapy.JobMetadata, error) {
-	data, err := ioutil.ReadFile(metaPath)
-	if err != nil {
-		return nil, err
-	}
-	var metadata bakapy.JobMetadata
-	err = json.Unmarshal(data, &metadata)
-	if err != nil {
-		return nil, err
-	}
-	return &metadata, nil
-}
-
 func printMetadata(metadata *bakapy.JobMetadata) {
 	fmt.Printf("==> [%s]%s\n", metadata.JobName, metadata.TaskId)
 	fmt.Println("==> Success:", metadata.Success)
@@ -40,6 +25,7 @@ func printMetadata(metadata *bakapy.JobMetadata) {
 	fmt.Println("==> Duration:", metadata.Duration())
 	fmt.Println("==> Files:", metadata.Files)
 	fmt.Println("==> Size:", metadata.TotalSize)
+	fmt.Println("==> Expire:", metadata.ExpireTime)
 	fmt.Printf("==> Output:\n%s\n", string(metadata.Output))
 	fmt.Printf("==> Errput:\n%s\n", string(metadata.Errput))
 	fmt.Println("==================================")
@@ -52,7 +38,7 @@ func main() {
 	}
 	var metas []*bakapy.JobMetadata
 	for _, metaPath := range os.Args[1:] {
-		meta, err := readMetadata(metaPath)
+		meta, err := bakapy.LoadJobMetadata(metaPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[warning] %s: %s\n", metaPath, err)
 			continue

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"net"
+	"os"
+	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -15,6 +18,7 @@ type StorageNewJobEvent struct {
 
 type Storage struct {
 	RootDir     string
+	MetadataDir string
 	CurrentJobs map[TaskId]StorageNewJobEvent
 	listenAddr  string
 	JobsChan    chan StorageNewJobEvent
@@ -24,6 +28,7 @@ type Storage struct {
 
 func NewStorage(cfg *Config) *Storage {
 	return &Storage{
+		MetadataDir: cfg.MetadataDir,
 		RootDir:     cfg.StorageDir,
 		CurrentJobs: make(map[TaskId]StorageNewJobEvent),
 		JobsChan:    make(chan StorageNewJobEvent, 5),
@@ -35,7 +40,64 @@ func NewStorage(cfg *Config) *Storage {
 
 func (stor *Storage) Start() {
 	ln := stor.Listen()
+	go func() {
+		for {
+			err := stor.CleanupExpired()
+			if err != nil {
+				stor.logger.Warning("cleanup failed: %s", err.Error())
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
 	go stor.Serve(ln)
+}
+
+func (stor *Storage) CleanupExpired() error {
+	visit := func(metaPath string, f os.FileInfo, err error) error {
+		if f.IsDir() {
+			return nil
+		}
+
+		metadata, err := LoadJobMetadata(metaPath)
+		if err != nil {
+			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
+			return err
+		}
+		if metadata.ExpireTime.After(time.Now()) {
+			return nil
+		}
+
+		stor.logger.Info("removing files for expired task %s(%s)",
+			metadata.JobName, metadata.TaskId)
+
+		removeErrs := false
+		for _, fileMeta := range metadata.Files {
+			absPath := path.Join(stor.RootDir, metadata.Namespace, fileMeta.Name)
+			stor.logger.Info("removing file %s", absPath)
+			_, err := os.Stat(absPath)
+			if os.IsNotExist(err) {
+				stor.logger.Warning("file %s of job %s does not exist", absPath, metadata.TaskId)
+				continue
+			}
+			err = os.Remove(absPath)
+			if err != nil {
+				removeErrs = true
+				stor.logger.Warning("cannot remove file %s: %s", absPath, err.Error())
+			}
+		}
+		if !removeErrs {
+			stor.logger.Info("removing metadata %s", metaPath)
+		}
+		err = os.Remove(metaPath)
+		if err != nil {
+			stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
+			return err
+		}
+
+		return nil
+	}
+
+	return filepath.Walk(stor.MetadataDir, visit)
 }
 
 func (stor *Storage) Listen() net.Listener {
