@@ -1,0 +1,21 @@
+FROM debian:wheezy
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_PRIORITY critical
+ENV DEBCONF_NOWARNINGS yes
+
+#RUN echo "deb http://ru.archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
+#RUN echo "deb http://ru.archive.ubuntu.com/ubuntu precise-updates main universe" >> /etc/apt/sources.list
+#RUN echo "deb http://security.ubuntu.com/ubuntu precise-security main universe" >> /etc/apt/sources.list
+RUN apt-get update
+
+RUN apt-get install -y wget dpkg-dev cdbs ssh tar autopkgtest
+RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.3.2.linux-amd64.tar.gz
+RUN tar -xf go1.3.2.linux-amd64.tar.gz
+
+ADD . /bakapy-source
+ENV PATH /go/bin:$PATH
+ENV GOROOT /go
+RUN cd /bakapy-source && dpkg-buildpackage -us -uc
+RUN mkdir -p /packages
+RUN mv /*.deb /packages
