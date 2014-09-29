@@ -151,8 +151,13 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 		remoteCmd = fmt.Sprintf("%s /bin/bash", strings.Join(env, " "))
 	}
 
+	sshBin, err := exec.LookPath("ssh")
+	if err != nil {
+		return new(bytes.Buffer), new(bytes.Buffer), err
+	}
+
 	args := []string{
-		job.gcfg.SSHBin, job.cfg.Host,
+		sshBin, job.cfg.Host,
 		"-oBatchMode=yes",
 		"-p", strconv.FormatInt(int64(job.cfg.Port), 10),
 		remoteCmd,

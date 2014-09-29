@@ -19,11 +19,6 @@ storage_dir: /tmp/backups/storage
 metadata_dir: /tmp/backups/metadata
 
 #
-# Полный путь к команде ssh
-#
-ssh_bin: /usr/bin/ssh
-
-#
 # Пользователь и группа под которым выполняются задачи. Должен
 # иметь право на запись в папки *_dir
 #

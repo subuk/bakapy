@@ -14,7 +14,6 @@ type Config struct {
 	Listen      string
 	StorageDir  string    `yaml:"storage_dir"`
 	MetadataDir string    `yaml:"metadata_dir"`
-	SSHBin      string    `yaml:"ssh_bin"`
 	StatusDir   string    `yaml:"status_dir"`
 	CommandDir  string    `yaml:"command_dir"`
 	Ports       PortRange `yaml:"port_range"`
