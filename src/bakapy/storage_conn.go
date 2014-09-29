@@ -1,6 +1,8 @@
 package bakapy
 
 import (
+	"bufio"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -20,7 +22,7 @@ type StorageConn struct {
 	CurrentFilename string
 	BytesReaded     int
 	TaskId          TaskId
-	jobEvent        StorageNewJobEvent
+	currentJob      StorageCurrentJob
 	stor            *Storage
 	logger          *logging.Logger
 	state           StorageConnState
@@ -58,14 +60,14 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	}
 	conn.TaskId = TaskId(taskId)
-	jobEvent, exist := conn.stor.CurrentJobs[conn.TaskId]
-	if !exist {
+	currentJob := conn.stor.GetCurrentJob(conn.TaskId)
+	if currentJob == nil {
 		msg := fmt.Sprintf("Cannot find task id '%s' in current job list (%s), closing connection", taskId, conn.stor.GetCurrentJobIds())
 		return errors.New(msg)
 	}
 
 	conn.logger.Debug("task id '%s' successfully readed.", taskId)
-	conn.jobEvent = jobEvent
+	conn.currentJob = *currentJob
 	conn.state = STATE_WAIT_FILENAME
 
 	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.RemoteAddr().String(), conn.TaskId)
@@ -111,20 +113,33 @@ func (conn *StorageConn) SaveFile() error {
 	}
 	savePath := path.Join(
 		conn.stor.RootDir,
-		conn.jobEvent.Namespace,
+		conn.currentJob.Namespace,
 		conn.CurrentFilename,
 	)
+	if conn.currentJob.Gzip {
+		savePath += ".gz"
+	}
 	conn.logger.Info("saving file %s", savePath)
 	err := os.MkdirAll(path.Dir(savePath), 0750)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Create(savePath)
+	fd, err := os.Create(savePath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
+	var file io.Writer
+	var gzWriter *gzip.Writer
+	var gzBuf *bufio.Writer
+	if conn.currentJob.Gzip {
+		gzWriter = gzip.NewWriter(fd)
+		gzBuf = bufio.NewWriter(gzWriter)
+		file = gzBuf
+	} else {
+		file = fd
+	}
 
 	fileMeta := JobMetadataFile{
 		Name:       conn.CurrentFilename,
@@ -139,14 +154,16 @@ func (conn *StorageConn) SaveFile() error {
 		return err
 	}
 
+	if conn.currentJob.Gzip {
+		gzBuf.Flush()
+		gzWriter.Close()
+	}
+	fd.Close()
+
 	fileMeta.Size = written
 	fileMeta.EndTime = time.Now()
-	conn.jobEvent.FileAddChan <- fileMeta
+	conn.currentJob.FileAddChan <- fileMeta
 
-	err = file.Sync()
-	if err != nil {
-		return err
-	}
 	conn.logger.Info("file saved %s", savePath)
 	conn.state = STATE_END
 	return nil

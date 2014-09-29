@@ -26,6 +26,7 @@ func (m *JobMetadataFile) String() string {
 
 type JobMetadata struct {
 	JobName    string
+	Gzip       bool
 	Namespace  string
 	TaskId     TaskId
 	Command    string

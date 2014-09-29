@@ -10,18 +10,19 @@ import (
 	"time"
 )
 
-type StorageNewJobEvent struct {
+type StorageCurrentJob struct {
 	TaskId      TaskId
 	FileAddChan chan JobMetadataFile
 	Namespace   string
+	Gzip        bool
 }
 
 type Storage struct {
 	RootDir     string
 	MetadataDir string
-	CurrentJobs map[TaskId]StorageNewJobEvent
+	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
-	JobsChan    chan StorageNewJobEvent
+	JobsChan    chan StorageCurrentJob
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
@@ -30,12 +31,20 @@ func NewStorage(cfg *Config) *Storage {
 	return &Storage{
 		MetadataDir: cfg.MetadataDir,
 		RootDir:     cfg.StorageDir,
-		CurrentJobs: make(map[TaskId]StorageNewJobEvent),
-		JobsChan:    make(chan StorageNewJobEvent, 5),
+		currentJobs: make(map[TaskId]StorageCurrentJob),
+		JobsChan:    make(chan StorageCurrentJob, 5),
 		connections: make(chan *StorageConn),
 		listenAddr:  cfg.Listen,
 		logger:      logging.MustGetLogger("bakapy.storage"),
 	}
+}
+
+func (stor *Storage) GetCurrentJob(taskId TaskId) *StorageCurrentJob {
+	jobEvent, exist := stor.currentJobs[taskId]
+	if exist {
+		return &jobEvent
+	}
+	return nil
 }
 
 func (stor *Storage) Start() {
@@ -125,8 +134,8 @@ func (stor *Storage) Listen() net.Listener {
 }
 
 func (stor *Storage) GetCurrentJobIds() []TaskId {
-	keys := make([]TaskId, 0, len(stor.CurrentJobs))
-	for k := range stor.CurrentJobs {
+	keys := make([]TaskId, 0, len(stor.currentJobs))
+	for k := range stor.currentJobs {
 		keys = append(keys, k)
 	}
 	return keys
@@ -137,7 +146,7 @@ func (stor *Storage) Serve(ln net.Listener) {
 		select {
 		case event := <-stor.JobsChan:
 			stor.logger.Info("new job %s", event.TaskId)
-			stor.CurrentJobs[event.TaskId] = event
+			stor.currentJobs[event.TaskId] = event
 		case conn := <-stor.connections:
 			go stor.handleConnection(conn)
 		}
@@ -162,7 +171,7 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	if conn.CurrentFilename == JOB_FINISH {
 		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
 		conn.logger.Info("removing from active jobs list")
-		delete(stor.CurrentJobs, conn.TaskId)
+		delete(stor.currentJobs, conn.TaskId)
 		return
 	}
 
@@ -173,10 +182,10 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 }
 
 func (stor *Storage) Wait() {
-   for {
-       if len(stor.GetCurrentJobIds()) == 0 {
-           return
-       }
-       time.Sleep(time.Second * 1)
+	for {
+		if len(stor.GetCurrentJobIds()) == 0 {
+			return
+		}
+		time.Sleep(time.Second * 1)
 	}
 }

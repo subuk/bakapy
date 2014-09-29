@@ -40,6 +40,11 @@ example:
   max_age_days: 3
 
   #
+  # Gzip on storage
+  #
+  gzip: true
+
+  #
   # Additional environment variables
   #
   args:

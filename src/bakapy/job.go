@@ -15,7 +15,7 @@ import (
 
 type Job struct {
 	Name     string
-	storJobs chan StorageNewJobEvent
+	storJobs chan StorageCurrentJob
 	cfg      JobConfig
 	gcfg     *Config
 	logger   *logging.Logger
@@ -123,6 +123,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 func (job *Job) Run() *JobMetadata {
 	metadata := &JobMetadata{
 		JobName:   job.Name,
+		Gzip:      job.cfg.Gzip,
 		Namespace: job.cfg.Namespace,
 		Pid:       os.Getpid(),
 		Command:   job.cfg.Command,
@@ -144,7 +145,8 @@ func (job *Job) Run() *JobMetadata {
 	}
 
 	fileAddChan := make(chan JobMetadataFile, 5)
-	job.storJobs <- StorageNewJobEvent{
+	job.storJobs <- StorageCurrentJob{
+		Gzip:        job.cfg.Gzip,
 		TaskId:      metadata.TaskId,
 		Namespace:   job.cfg.Namespace,
 		FileAddChan: fileAddChan,
@@ -152,16 +154,19 @@ func (job *Job) Run() *JobMetadata {
 
 	stopUpdater := make(chan int, 1)
 	go func() {
+		defer job.logger.Debug("metadata update routine stopped")
 		for {
 			select {
 			case meta := <-fileAddChan:
 				job.logger.Debug("Adding new file metadata: %s", meta.String())
 				metadata.Files = append(metadata.Files, meta)
-			case <-stopUpdater:
-				job.logger.Debug("Stopping metadata update routine")
+			case _ = <-stopUpdater:
 				return
 			}
 		}
+	}()
+	defer func() {
+		stopUpdater <- 1
 	}()
 
 	output, errput, err := job.execute(metadata.Script)
@@ -187,7 +192,6 @@ func (job *Job) Run() *JobMetadata {
 	for _, fileMeta := range metadata.Files {
 		metadata.TotalSize += fileMeta.Size
 	}
-	stopUpdater <- 1
 	return metadata
 }
 
@@ -195,7 +199,7 @@ func (job *Job) IsDisabled() bool {
 	return job.cfg.Disabled
 }
 
-func NewJob(name string, cfg JobConfig, storJobs chan StorageNewJobEvent, globalConfig *Config) *Job {
+func NewJob(name string, cfg JobConfig, storJobs chan StorageCurrentJob, globalConfig *Config) *Job {
 	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
 	return &Job{
 		Name:     name,

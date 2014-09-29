@@ -78,6 +78,7 @@ func (r *RunAtSpec) SchedulerString() string {
 type JobConfig struct {
 	Sudo       bool
 	Disabled   bool
+	Gzip       bool
 	MaxAgeDays int `yaml:"max_age_days"`
 	Namespace  string
 	Host       string
