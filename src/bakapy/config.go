@@ -6,6 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 )
 
 type Config struct {
@@ -107,23 +108,37 @@ func ParseConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	var jobs = map[string]JobConfig{}
-	var configDir = path.Dir(configPath)
-	for _, relPath := range cfg.IncludeJobs {
-		raw, err := ioutil.ReadFile(path.Join(configDir, relPath))
+	configDir := path.Dir(configPath)
+	jobDefines := map[string]string{}
+	for _, relPathGlob := range cfg.IncludeJobs {
+		pathGlob := path.Join(configDir, relPathGlob)
+		paths, err := filepath.Glob(pathGlob)
 		if err != nil {
 			return nil, err
 		}
 
-		err = yaml.Unmarshal(raw, &jobs)
-		if err != nil {
-			return nil, err
+		for _, path := range paths {
+			raw, err := ioutil.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			jobs := map[string]JobConfig{}
+			err = yaml.Unmarshal(raw, &jobs)
+			if err != nil {
+				return nil, err
+			}
+			for name, params := range jobs {
+				if _, exist := jobDefines[name]; exist {
+					errString := fmt.Sprintf(
+						"%s: duplicated job name %s, previously defined at %s",
+						path, name, jobDefines[name])
+					return nil, errors.New(errString)
+				}
+				jobDefines[name] = path
+				cfg.Jobs[name] = params
+			}
 		}
-		for name, params := range jobs {
-			cfg.Jobs[name] = params
-		}
-
 	}
 
-	return cfg, err
+	return cfg, nil
 }
