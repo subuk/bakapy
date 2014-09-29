@@ -41,4 +41,5 @@ func main() {
 	)
 	storage.Start()
 	bakapy.RunJob(job, config, logger)
+	storage.Wait()
 }

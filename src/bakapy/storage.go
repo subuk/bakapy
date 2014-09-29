@@ -173,7 +173,10 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 }
 
 func (stor *Storage) Wait() {
-	for len(stor.CurrentJobs) == 0 {
-		time.Sleep(time.Second * 2)
+   for {
+       if len(stor.GetCurrentJobIds()) == 0 {
+           return
+       }
+       time.Sleep(time.Second * 1)
 	}
 }
