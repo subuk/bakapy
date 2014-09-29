@@ -40,7 +40,7 @@ func main() {
 		)
 		scheduler.AddFunc(runSpec, func() {
 			if job.IsDisabled() {
-				logger.Warning("job %s disabled, skipping", job.Name)
+				logger.Debug("job %s disabled, skipping", job.Name)
 				return
 			}
 			bakapy.RunJob(job, config, logger)
