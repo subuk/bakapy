@@ -141,7 +141,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 	var remoteCmd string
 	env := make([]string, len(job.cfg.Args))
 	for argName, argValue := range job.cfg.Args {
-		arg := fmt.Sprintf("%s=%s", strings.ToUpper(argName), argValue)
+		arg := fmt.Sprintf("%s='%s'", strings.ToUpper(argName), argValue)
 		env = append(env, arg)
 	}
 
