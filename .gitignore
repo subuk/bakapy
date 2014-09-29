@@ -8,6 +8,5 @@
 /debian/bakapy.debhelper.log
 /debian/bakapy.substvars
 /debian/bakapy/
-/debian/compat
 /debian/files
 /builded-packages/
