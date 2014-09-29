@@ -85,8 +85,8 @@ func (stor *Storage) Serve(ln net.Listener) {
 
 func (stor *Storage) handleConnection(conn *StorageConn) {
 	var err error
-	defer conn.logger.Debug("closing connection")
-	defer conn.Close()
+	defer conn.logger.Debug("connection handled")
+
 	if err = conn.ReadTaskId(); err != nil {
 		conn.logger.Warning("cannot read task id: %s. closing connection", err)
 		return

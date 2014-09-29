@@ -42,6 +42,7 @@ _send_file(){
     exec 3<>/dev/tcp/${TO_HOST}/${TO_PORT}
     echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#name})${name} >&3
     cat - >&3
+    exec 3>&-
 }
 
 _finish(){
