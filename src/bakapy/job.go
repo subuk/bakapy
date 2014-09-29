@@ -55,6 +55,7 @@ func (m *JobMetadataFile) String() string {
 }
 
 type JobMetadata struct {
+	JobName    string
 	TaskId     TaskId
 	Command    string
 	Success    bool
@@ -186,6 +187,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 
 func (job *Job) Run() *JobMetadata {
 	metadata := &JobMetadata{
+		JobName:   job.Name,
 		Pid:       os.Getpid(),
 		Command:   job.cfg.Command,
 		Config:    job.cfg,

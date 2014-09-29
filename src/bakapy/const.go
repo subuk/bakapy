@@ -34,7 +34,7 @@ TO_HOST='{{.ToHost}}'
 TO_PORT='{{.ToPort}}'
 JOB_FINISH='{{.FINISH_MAGIC}}'
 TASK_ID='{{.Meta.TaskId}}'
-
+TASK_NAME='{{.Meta.JobName}}'
 
 _send_file(){
     name="$1"
