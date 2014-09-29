@@ -12,6 +12,7 @@ import (
 var logger = logging.MustGetLogger("bakapy.scheduler")
 var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
+var TEST_CONFIG_ONLY = flag.Bool("test", false, "Check config and exit")
 
 func main() {
 	flag.Parse()
@@ -45,6 +46,10 @@ func main() {
 			}
 			bakapy.RunJob(job, config, logger)
 		})
+	}
+
+	if *TEST_CONFIG_ONLY {
+		return
 	}
 
 	storage.Start()
