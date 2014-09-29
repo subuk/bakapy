@@ -44,7 +44,7 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	taskId := make([]byte, STORAGE_TASK_ID_LEN)
 
-   conn.logger.Debug("reading task id")
+	conn.logger.Debug("reading task id")
 	readed, err := io.ReadFull(conn, taskId)
 	conn.logger.Debug("readed %d bytes", readed)
 
@@ -147,6 +147,7 @@ func (conn *StorageConn) SaveFile() error {
 	if err != nil {
 		return err
 	}
+	conn.logger.Info("file saved %s", savePath)
 	conn.state = STATE_END
 	return nil
 }
