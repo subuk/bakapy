@@ -39,11 +39,12 @@ func main() {
 			jobName, jobConfig,
 			storage.JobsChan, config,
 		)
+		if job.IsDisabled() {
+			logger.Warning("job %s disabled, skipping", job.Name)
+			continue
+		}
+
 		scheduler.AddFunc(runSpec, func() {
-			if job.IsDisabled() {
-				logger.Debug("job %s disabled, skipping", job.Name)
-				return
-			}
 			bakapy.RunJob(job, config, logger)
 		})
 	}
