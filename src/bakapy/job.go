@@ -138,19 +138,26 @@ func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
 
 func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buffer, err error) {
 	var remoteCmd string
-	if job.cfg.Sudo {
-		remoteCmd = "sudo /bin/bash"
-	} else {
-		remoteCmd = "/bin/bash"
+	env := make([]string, len(job.cfg.Args))
+	for argName, argValue := range job.cfg.Args {
+		arg := fmt.Sprintf("%s=%s", strings.ToUpper(argName), argValue)
+		env = append(env, arg)
 	}
+
+	if job.cfg.Sudo {
+		remoteCmd = fmt.Sprintf("sudo %s /bin/bash", strings.Join(env, " "))
+	} else {
+		remoteCmd = fmt.Sprintf("%s /bin/bash", strings.Join(env, " "))
+	}
+
 	args := []string{
 		job.gcfg.SSHBin, job.cfg.Host,
 		"-oBatchMode=yes",
 		"-p", strconv.FormatInt(int64(job.cfg.Port), 10),
 		remoteCmd,
 	}
+
 	job.logger.Debug(string(script))
-	job.logger.Debug("executing command '%s'", strings.Join(args, " "))
 	cmd := exec.Cmd{
 		Path: args[0],
 		Args: args,
@@ -162,6 +169,10 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 	cmd.Stderr = output
 	cmd.Stdout = errput
 	cmd.Stdin = bytes.NewReader(script)
+
+	job.logger.Debug("executing command '%s'",
+		strings.Join(args, " "))
+
 	err = cmd.Start()
 	if err != nil {
 		return output, errput, err

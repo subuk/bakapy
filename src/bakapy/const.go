@@ -29,27 +29,29 @@ var JOB_TEMPLATE = template.Must(template.New("job").Parse(`
 ##
 set -e
 
+FILENAME_LEN_LEN='{{.FILENAME_LEN_LEN}}'
 TO_HOST='{{.ToHost}}'
 TO_PORT='{{.ToPort}}'
 JOB_FINISH='{{.FINISH_MAGIC}}'
 TASK_ID='{{.Meta.TaskId}}'
 
+
 _send_file(){
     name="$1"
 
     exec 3<>/dev/tcp/${TO_HOST}/${TO_PORT}
-    echo -n ${TASK_ID}$(printf "%0{{.FILENAME_LEN_LEN}}d" ${#name})${name} >&3
+    echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#name})${name} >&3
     cat - >&3
 }
 
 _finish(){
-    echo -n ${TASK_ID}$(printf "%0{{.FILENAME_LEN_LEN}}d" ${#JOB_FINISH})${JOB_FINISH} \
+    echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#JOB_FINISH})${JOB_FINISH} \
         > /dev/tcp/${TO_HOST}/${TO_PORT}
 }
 
 _fail(){
     test ! -z "$1" && echo "command failed at line $1"
-    echo -n ${TASK_ID}$(printf "%0{{.FILENAME_LEN_LEN}}d" ${#JOB_FINISH})${JOB_FINISH} \
+    echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#JOB_FINISH})${JOB_FINISH} \
         > /dev/tcp/${TO_HOST}/${TO_PORT}
     exit 1
 }
