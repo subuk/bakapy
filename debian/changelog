@@ -1,4 +1,10 @@
-bakapy (0.1) UNRELEASED; urgency=medium
+bakapy (0.2) unstable; urgency=medium
+
+  * New version
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Tue, 30 Sep 2014 01:18:28 +0400
+
+bakapy (0.1) unstable; urgency=medium
 
   * Initial release.
 
