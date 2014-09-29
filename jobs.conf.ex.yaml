@@ -1,59 +1,53 @@
 #
-# Пример задания
+# Task example
 #
 example:
 
   #
-  # Не выполнять
+  # Do not run this task in scheduler
   #
   disabled: true
 
   #
-  # Папка этой задачи в хранилище. Файлы будут создаваться
-  # не в ${storage_dir}/, а в ${storage_dir}/${namespace}/
-  # Если не указано или пустое, предполагается что namespace
-  # равен имени задачи.
-  #
-  # Изначальное предназначение - сохранение инкрементальных и
-  # полных копий в одном месте.
+  # Storage prefix. Backup files will be created at
+  #   $storage_dir/$namespace/$filename
   #
   namespace: example
 
   #
-  # Хост SSH
+  # SSH Host
   #
   host: root@127.0.0.1
 
   #
-  # Порт SSH
+  # SSH Port
   #
   port: 22
 
   #
-  # Использовать sudo. Не должно спрашивать пароль.
+  # Use sudo (must not ask password)
   #
   sudo: yes
 
   #
-  # Путь к команде. Вычисляется относительно парамертра command_dir
-  # в секции main
+  # Command path relative to $command_dir from main config file
   #
   command: backup-directories.sh
 
   #
-  # Время хранения файлов задачи в днях
+  # This job files will be saved next $max_age_days days
   #
   max_age_days: 3
 
   #
-  # Аргументы
+  # Additional environment variables
   #
   args:
     backup_type: full
     backup_dirs: /etc
 
   #
-  # Спецификация времени выполнения задачи.
+  # Cron-like run specification
   #
   run_at:
     second: '*/5'

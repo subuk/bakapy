@@ -1,30 +1,31 @@
 #
-# Конфигурация создания резервных копий. Отступы важны!
+# Bakapy configuration
 #
 
 #
-# Директория для хранение команд. Путь к команде в задаче
-# указывается относительно этого пути.
+# Commands path.
 #
 command_dir: commands/
 
 #
-# Директория для хранения файлов бекапов
+# Backup storage path
 #
 storage_dir: /tmp/backups/storage
 
 #
-# Директория для хранения метаданных бекапов
+# Storage metadata path
 #
 metadata_dir: /tmp/backups/metadata
 
 #
-# Хост, куда будут подключаться клиенты для передачи данных (не 0.0.0.0!).
+# Host for clients connect to (do not use 0.0.0.0!).
 #
 listen: 127.0.0.1:9876
 
 #
-# Список файлов с определением задач (относительно этого файла)
+# Job definition files list (relative to this file).
+# May contain globs, eg:
+# - /etc/bakaup/jobs/*.conf
 #
 include_jobs:
   - jobs.conf.ex.yaml
