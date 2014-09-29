@@ -44,10 +44,7 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	taskId := make([]byte, STORAGE_TASK_ID_LEN)
 
-	deadline := time.Now().Add(time.Second * STORAGE_AUTH_TIMEOUT)
-	conn.SetDeadline(deadline)
-
-	conn.logger.Debug("reading task id until %s", deadline)
+   conn.logger.Debug("reading task id")
 	readed, err := io.ReadFull(conn, taskId)
 	conn.logger.Debug("readed %d bytes", readed)
 
