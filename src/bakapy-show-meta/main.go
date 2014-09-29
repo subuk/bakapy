@@ -31,14 +31,14 @@ func readMetadata(metaPath string) (*bakapy.JobMetadata, error) {
 }
 
 func printMetadata(metadata *bakapy.JobMetadata) {
-	fmt.Println("==>", metadata.TaskId)
+	fmt.Printf("==> [%s]%s\n", metadata.JobName, metadata.TaskId)
 	fmt.Println("==> Success:", metadata.Success)
-	fmt.Println("==> Name:", metadata.Command)
+	fmt.Println("==> Command:", metadata.Command)
 	fmt.Println("==> PID:", metadata.Pid)
 	fmt.Println("==> Start:", metadata.StartTime)
 	fmt.Println("==> End:", metadata.EndTime)
-	fmt.Println("==> Duration", metadata.Duration())
-	fmt.Println("==> Files", metadata.Files)
+	fmt.Println("==> Duration:", metadata.Duration())
+	fmt.Println("==> Files:", metadata.Files)
 	fmt.Println("==> Size:", metadata.TotalSize)
 	fmt.Printf("==> Output:\n%s\n", string(metadata.Output))
 	fmt.Printf("==> Errput:\n%s\n", string(metadata.Errput))
