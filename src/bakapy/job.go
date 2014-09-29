@@ -167,8 +167,8 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 	output = new(bytes.Buffer)
 	errput = new(bytes.Buffer)
 
-	cmd.Stderr = output
-	cmd.Stdout = errput
+	cmd.Stderr = errput
+	cmd.Stdout = output
 	cmd.Stdin = bytes.NewReader(script)
 
 	job.logger.Debug("executing command '%s'",
