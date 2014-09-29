@@ -1,0 +1,8 @@
+description "Bakapy scheduler"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+script
+    exec /usr/bin/bakapy-scheduler --config=/etc/bakapy/bakapy.conf --loglevel=info
+end script
