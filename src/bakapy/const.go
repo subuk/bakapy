@@ -50,7 +50,7 @@ _finish(){
 }
 
 _fail(){
-    test ! -z "$1" && echo "command failed at line $1"
+    test ! -z "$1" && echo "command failed at line $1" >&2
     echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#JOB_FINISH})${JOB_FINISH} \
         > /dev/tcp/${TO_HOST}/${TO_PORT}
     exit 1

@@ -4,6 +4,11 @@
 example:
 
   #
+  # Не выполнять
+  #
+  disabled: true
+
+  #
   # Папка этой задачи в хранилище. Файлы будут создаваться
   # не в ${storage_dir}/, а в ${storage_dir}/${namespace}/
   # Если не указано или пустое, предполагается что namespace
@@ -33,14 +38,18 @@ example:
   # Путь к команде. Вычисляется относительно парамертра command_dir
   # в секции main
   #
-  command: simple-command.sh
+  command: backup-directories.sh
 
   #
   # Время хранения файлов задачи в днях
   #
   max_age_days: 3
 
+  #
+  # Аргументы
+  #
   args:
+    backup_type: full
     backup_dirs: /etc
 
   #

@@ -85,6 +85,7 @@ func (stor *Storage) Serve(ln net.Listener) {
 
 func (stor *Storage) handleConnection(conn *StorageConn) {
 	var err error
+	defer conn.logger.Debug("closing connection")
 	defer conn.Close()
 	if err = conn.ReadTaskId(); err != nil {
 		conn.logger.Warning("cannot read task id: %s. closing connection", err)
@@ -98,6 +99,7 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 
 	if conn.CurrentFilename == JOB_FINISH {
 		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
+		conn.logger.Info("removing from active jobs list")
 		delete(stor.CurrentJobs, conn.TaskId)
 		return
 	}
