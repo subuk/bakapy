@@ -132,11 +132,9 @@ func (conn *StorageConn) SaveFile() error {
 
 	var file io.Writer
 	var gzWriter *gzip.Writer
-	var gzBuf *bufio.Writer
 	if conn.currentJob.Gzip {
 		gzWriter = gzip.NewWriter(fd)
-		gzBuf = bufio.NewWriter(gzWriter)
-		file = gzBuf
+		file = gzWriter
 	} else {
 		file = fd
 	}
@@ -149,13 +147,13 @@ func (conn *StorageConn) SaveFile() error {
 
 	conn.state = STATE_RECEIVING
 
-	written, err := io.Copy(file, conn)
+	buff := bufio.NewWriter(file)
+	written, err := io.Copy(buff, conn)
 	if err != nil {
 		return err
 	}
-
+	buff.Flush()
 	if conn.currentJob.Gzip {
-		gzBuf.Flush()
 		gzWriter.Close()
 	}
 	fd.Close()
