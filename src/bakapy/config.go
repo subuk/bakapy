@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"path"
 )
 
 type Config struct {
@@ -107,9 +108,9 @@ func ParseConfig(configPath string) (*Config, error) {
 	}
 
 	var jobs = map[string]JobConfig{}
+	var configDir = path.Dir(configPath)
 	for _, relPath := range cfg.IncludeJobs {
-
-		raw, err := ioutil.ReadFile(relPath)
+		raw, err := ioutil.ReadFile(path.Join(configDir, relPath))
 		if err != nil {
 			return nil, err
 		}
