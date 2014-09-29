@@ -3,11 +3,8 @@ package bakapy
 import (
 	"bytes"
 	"code.google.com/p/go-uuid/uuid"
-	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -40,88 +37,6 @@ func (jctx *JobTemplateContext) ToHost() string {
 
 func (jctx *JobTemplateContext) ToPort() string {
 	return strings.Split(jctx.GCfg.Listen, ":")[1]
-}
-
-type JobMetadataFile struct {
-	Name       string
-	Size       int64
-	SourceAddr string
-	StartTime  time.Time
-	EndTime    time.Time
-}
-
-func (m *JobMetadataFile) String() string {
-	return fmt.Sprintf(`{name: "%s", size: "%d", start_time: "%s", end_time: "%s"`,
-		m.Name, m.Size, m.StartTime, m.EndTime)
-}
-
-type JobMetadata struct {
-	JobName    string
-	Namespace  string
-	TaskId     TaskId
-	Command    string
-	Success    bool
-	Message    string
-	TotalSize  int64
-	StartTime  time.Time
-	EndTime    time.Time
-	ExpireTime time.Time
-	Files      []JobMetadataFile
-	Pid        int
-	RetCode    uint
-	Script     []byte
-	Output     []byte
-	Errput     []byte
-	Config     JobConfig
-}
-
-func (metadata *JobMetadata) Duration() time.Duration {
-	return metadata.EndTime.Sub(metadata.StartTime)
-}
-
-func (metadata *JobMetadata) Save(saveTo string) error {
-	err := os.MkdirAll(path.Dir(saveTo), 0750)
-	if err != nil {
-		return err
-	}
-	file, err := os.Create(saveTo)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	jsonData, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(file, bytes.NewReader(jsonData))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func LoadJobMetadata(path string) (*JobMetadata, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	metadata := JobMetadata{}
-	err = json.Unmarshal(data, &metadata)
-	if err != nil {
-		return nil, err
-	}
-	return &metadata, nil
-}
-
-func NewJob(name string, cfg JobConfig, storJobs chan StorageNewJobEvent, globalConfig *Config) *Job {
-	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
-	return &Job{
-		Name:     name,
-		cfg:      cfg,
-		logger:   logging.MustGetLogger(loggerName),
-		storJobs: storJobs,
-		gcfg:     globalConfig,
-	}
 }
 
 func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
@@ -278,4 +193,15 @@ func (job *Job) Run() *JobMetadata {
 
 func (job *Job) IsDisabled() bool {
 	return job.cfg.Disabled
+}
+
+func NewJob(name string, cfg JobConfig, storJobs chan StorageNewJobEvent, globalConfig *Config) *Job {
+	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
+	return &Job{
+		Name:     name,
+		cfg:      cfg,
+		logger:   logging.MustGetLogger(loggerName),
+		storJobs: storJobs,
+		gcfg:     globalConfig,
+	}
 }
