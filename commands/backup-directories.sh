@@ -29,7 +29,7 @@ if [ -z "$LISTED_INCREMENTAL" ];then
     LISTED_INCREMENTAL=/var/tmp/.backup-directory-listed-incremental
 fi
 
-START_DATE=$(date "+%Y-%m-%d")
+START_DATE=$(date "+%Y-%m-%d_%H%M%S")
 
 echo "PATH: $PATH"
 echo "GZIP_EXTRA_ARGS: $GZIP_EXTRA_ARGS"

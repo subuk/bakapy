@@ -27,7 +27,7 @@ if [ -z "$IO_PRIORITY" ];then
     IO_PRIORITY=3
 fi
 
-START_DATE=$(date "+%Y-%m-%d")
+START_DATE=$(date "+%Y-%m-%d_%H%M%S")
 
 echo "PATH: $PATH"
 echo "GZIP_EXTRA_ARGS: $GZIP_EXTRA_ARGS"

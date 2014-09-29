@@ -8,13 +8,14 @@
 
 export PGUSER
 export PGPASSWORD
+START_DATE=$(date "+%Y-%m-%d_%H%M%S")
 
 if [ -z "$DATABASES" ];then
-    DATABASES=$(psql -l -A -t -d template1|awk -F '|' {'print $1'}|grep -v -e "template1$"  -e "template0$" -e "^postgres$" -e "postgres=CTc/postgres")
+    DATABASES=$(psql postgres -At -c 'select datname from pg_database where not datistemplate and datallowconn order by datname')
 fi
 
 for db in $DATABASES;do
-    /usr/bin/pg_dump -E UTF8 "$db" |_send_file "$db"/$(date "+%Y-%m-%d").sql
+    /usr/bin/pg_dump -E UTF8 "$db" | gzip|_send_file "$db"/"${START_DATE}.sql.gz"
 done
 
 _finish
