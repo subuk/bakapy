@@ -19,6 +19,7 @@ func printMetadata(metadata *bakapy.JobMetadata) {
 	fmt.Printf("==> [%s]%s\n", metadata.JobName, metadata.TaskId)
 	fmt.Println("==> Success:", metadata.Success)
 	fmt.Println("==> Command:", metadata.Command)
+	fmt.Println("==> AvgSpeed:", metadata.AvgSpeed())
 	fmt.Println("==> PID:", metadata.Pid)
 	fmt.Println("==> Start:", metadata.StartTime)
 	fmt.Println("==> End:", metadata.EndTime)

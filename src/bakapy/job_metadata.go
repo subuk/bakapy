@@ -49,6 +49,13 @@ func (metadata *JobMetadata) Duration() time.Duration {
 	return metadata.EndTime.Sub(metadata.StartTime)
 }
 
+func (metadata *JobMetadata) AvgSpeed() int64 {
+	if int64(metadata.Duration().Seconds()) == 0 {
+		return 0
+	}
+	return metadata.TotalSize / int64(metadata.Duration().Seconds())
+}
+
 func (metadata *JobMetadata) Save(saveTo string) error {
 	err := os.MkdirAll(path.Dir(saveTo), 0750)
 	if err != nil {
