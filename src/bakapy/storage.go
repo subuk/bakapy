@@ -134,6 +134,10 @@ func (stor *Storage) AddJob(currentJob StorageCurrentJob) {
 	stor.jobManager.AddJob <- currentJob
 }
 
+func (stor *Storage) RemoveJob(id TaskId) {
+	stor.jobManager.RemoveJob <- id
+}
+
 func (stor *Storage) Serve(ln net.Listener) {
 	for {
 		go stor.handleConnection(<-stor.connections)
@@ -162,7 +166,7 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	if conn.CurrentFilename == JOB_FINISH {
 		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
 		conn.logger.Debug("sending event to finishedChan")
-		stor.jobManager.RemoveJob <- conn.currentJob
+		stor.jobManager.RemoveJob <- conn.currentJob.TaskId
 		return
 	}
 
@@ -179,7 +183,7 @@ func (stor *Storage) GetActiveJob(taskId TaskId) *StorageCurrentJob {
 
 func (stor *Storage) WaitJob(taskId TaskId) {
 	for {
-		if stor.jobManager.GetJob(taskId) == nil {
+		if stor.jobManager.GetJob(taskId) == nil && !stor.jobManager.HasConnections(taskId) {
 			return
 		}
 		time.Sleep(time.Millisecond * 100)
