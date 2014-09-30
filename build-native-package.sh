@@ -16,6 +16,6 @@ rm -f Dockerfile
 ln -s "Dockerfile.${DISTRO}" Dockerfile
 docker build -t "bakapy-build-${DISTRO}" .
 
-rm -rf builded-packages/
-mkdir -p builded-packages/
-docker run --rm "bakapy-build-${DISTRO}" /bin/bash -c 'tar -C /packages -cf - .' | tar -C ./builded-packages/ -xf -
+rm -rf "native-packages/${DISTRO}"
+mkdir -p "native-packages/${DISTRO}"
+docker run --rm "bakapy-build-${DISTRO}" /bin/bash -c 'tar -C /packages -cf - .' | tar -C "./native-packages/${DISTRO}" -xf -

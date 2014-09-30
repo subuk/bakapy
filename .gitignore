@@ -9,4 +9,4 @@
 /debian/bakapy.substvars
 /debian/bakapy/
 /debian/files
-/builded-packages/
+/native-packages/
