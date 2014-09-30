@@ -111,14 +111,16 @@ func (conn *StorageConn) SaveFile() error {
 		msg := fmt.Sprintf("protocol error - cannot read data in state %d", conn.state)
 		return errors.New(msg)
 	}
+
+	if conn.currentJob.Gzip {
+		conn.CurrentFilename += ".gz"
+	}
+
 	savePath := path.Join(
 		conn.stor.RootDir,
 		conn.currentJob.Namespace,
 		conn.CurrentFilename,
 	)
-	if conn.currentJob.Gzip {
-		savePath += ".gz"
-	}
 	conn.logger.Info("saving file %s", savePath)
 	err := os.MkdirAll(path.Dir(savePath), 0750)
 	if err != nil {
