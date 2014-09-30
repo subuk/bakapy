@@ -16,10 +16,10 @@ type StorageJobManager struct {
 
 func NewStorageJobManager() *StorageJobManager {
 	m := &StorageJobManager{
-		AddJob:             make(chan StorageCurrentJob),
-		AddConnection:      make(chan TaskId),
-		RemoveJob:          make(chan TaskId),
-		RemoveConnection:   make(chan TaskId),
+		AddJob:             make(chan StorageCurrentJob, 5),
+		AddConnection:      make(chan TaskId, 5),
+		RemoveJob:          make(chan TaskId, 5),
+		RemoveConnection:   make(chan TaskId, 5),
 		currentJobs:        make(map[TaskId]StorageCurrentJob, 30),
 		jobConnectionCount: make(map[TaskId]int, 30),
 	}

@@ -11,11 +11,10 @@ import (
 )
 
 type StorageCurrentJob struct {
-	TaskId          TaskId
-	FileAddChan     chan JobMetadataFile
-	Namespace       string
-	Gzip            bool
-	JobFinishedChan chan int
+	TaskId      TaskId
+	FileAddChan chan JobMetadataFile
+	Namespace   string
+	Gzip        bool
 }
 
 type Storage struct {

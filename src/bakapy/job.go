@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -162,33 +163,28 @@ func (job *Job) Run() *JobMetadata {
 		return metadata
 	}
 
-	fileAddChan := make(chan JobMetadataFile, 5)
-	storJobFinishedChan := make(chan int)
+	fileAddChan := make(chan JobMetadataFile, 20)
 
 	job.storage.AddJob(StorageCurrentJob{
-		Gzip:            job.cfg.Gzip,
-		TaskId:          metadata.TaskId,
-		Namespace:       job.cfg.Namespace,
-		FileAddChan:     fileAddChan,
-		JobFinishedChan: storJobFinishedChan,
+		Gzip:        job.cfg.Gzip,
+		TaskId:      metadata.TaskId,
+		Namespace:   job.cfg.Namespace,
+		FileAddChan: fileAddChan,
 	})
 
-	stopUpdater := make(chan int)
+	stopUpdater := make(chan int, 1)
 	go func() {
-		defer job.logger.Debug("metadata update routine stopped")
 		for {
 			select {
 			case meta := <-fileAddChan:
 				job.logger.Debug("Adding new file metadata: %s", meta.String())
 				metadata.Files = append(metadata.Files, meta)
-			case _ = <-stopUpdater:
+			case <-stopUpdater:
 				close(fileAddChan)
+				job.logger.Debug("metadata update routine stopped")
 				return
 			}
 		}
-	}()
-	defer func() {
-		stopUpdater <- 1
 	}()
 
 	output, errput, err := job.execute(metadata.Script)
@@ -217,7 +213,8 @@ func (job *Job) Run() *JobMetadata {
 
 	job.logger.Debug("waiting storage")
 	job.storage.WaitJob(metadata.TaskId)
-
+	stopUpdater <- 1
+	runtime.Gosched() // Hack
 	return metadata
 }
 
