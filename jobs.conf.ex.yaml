@@ -15,14 +15,14 @@ example:
   namespace: example
 
   #
-  # SSH Host
+  # SSH Host. Run locally if not specified.
   #
-  host: root@127.0.0.1
+  # host: root@127.0.0.1
 
   #
   # SSH Port
   #
-  port: 22
+  # port: 22
 
   #
   # Use sudo (must not ask password)

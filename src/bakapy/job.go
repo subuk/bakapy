@@ -81,20 +81,30 @@ func (job *Job) GetCmd() (*exec.Cmd, error) {
 		remoteCmd = fmt.Sprintf("%s /bin/bash", strings.Join(env, " "))
 	}
 
-	sshBin, err := exec.LookPath("ssh")
+	var args []string
+
+	if job.cfg.Host != "" {
+		args = []string{
+			"ssh", job.cfg.Host,
+			"-oBatchMode=yes",
+			"-p", strconv.FormatInt(int64(job.cfg.Port), 10),
+			remoteCmd,
+		}
+	} else {
+		args = []string{
+			"bash", "-c",
+			remoteCmd,
+		}
+	}
+
+	cmdPath, err := exec.LookPath(args[0])
 	if err != nil {
 		return nil, err
 	}
-
-	args := []string{
-		sshBin, job.cfg.Host,
-		"-oBatchMode=yes",
-		"-p", strconv.FormatInt(int64(job.cfg.Port), 10),
-		remoteCmd,
-	}
+	args[0] = cmdPath
 
 	cmd := &exec.Cmd{
-		Path: args[0],
+		Path: cmdPath,
 		Args: args,
 	}
 	return cmd, nil
