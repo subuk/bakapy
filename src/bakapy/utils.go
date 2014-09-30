@@ -20,7 +20,8 @@ func SetupLogging(logLevel string) error {
 	return nil
 }
 
-func RunJob(job *Job, config *Config, logger *logging.Logger) string {
+func RunJob(job *Job, config *Config) string {
+	logger := logging.MustGetLogger("bakapy.job")
 	metadata := job.Run()
 	saveTo := path.Join(config.MetadataDir, string(metadata.TaskId))
 	err := metadata.Save(saveTo)

@@ -4,11 +4,9 @@ import (
 	"bakapy"
 	"flag"
 	"fmt"
-	"github.com/op/go-logging"
 	"os"
 )
 
-var logger = logging.MustGetLogger("bakapy.scheduler")
 var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var JOB_NAME = flag.String("job", "REQUIRED", "Job name")
@@ -23,7 +21,8 @@ func main() {
 
 	config, err := bakapy.ParseConfig(*CONFIG_PATH)
 	if err != nil {
-		logger.Fatal(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 
 	storage := bakapy.NewStorage(config)
@@ -31,8 +30,8 @@ func main() {
 	jobName := *JOB_NAME
 	jobConfig, jobExist := config.Jobs[jobName]
 	if !jobExist {
-		logger.Fatalf("Job %s not found", jobName)
-		return
+		fmt.Printf("Job %s not found\n", jobName)
+		os.Exit(1)
 	}
 
 	job := bakapy.NewJob(
@@ -40,5 +39,5 @@ func main() {
 		config, storage,
 	)
 	storage.Start()
-	bakapy.RunJob(job, config, logger)
+	bakapy.RunJob(job, config)
 }

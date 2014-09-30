@@ -46,7 +46,7 @@ func main() {
 		}
 
 		scheduler.AddFunc(runSpec, func() {
-			bakapy.RunJob(job, config, logger)
+			bakapy.RunJob(job, config)
 		})
 	}
 
