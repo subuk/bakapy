@@ -32,7 +32,6 @@ set -e
 FILENAME_LEN_LEN='{{.FILENAME_LEN_LEN}}'
 TO_HOST='{{.ToHost}}'
 TO_PORT='{{.ToPort}}'
-JOB_FINISH='{{.FINISH_MAGIC}}'
 TASK_ID='{{.Meta.TaskId}}'
 TASK_NAME='{{.Meta.JobName}}'
 
@@ -46,14 +45,11 @@ _send_file(){
 }
 
 _finish(){
-    echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#JOB_FINISH})${JOB_FINISH} \
-        > /dev/tcp/${TO_HOST}/${TO_PORT}
+    echo > /dev/null
 }
 
 _fail(){
     test ! -z "$1" && echo "command failed at line $1" >&2
-    echo -n ${TASK_ID}$(printf "%0${FILENAME_LEN_LEN}d" ${#JOB_FINISH})${JOB_FINISH} \
-        > /dev/tcp/${TO_HOST}/${TO_PORT}
     exit 1
 }
 

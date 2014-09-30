@@ -28,7 +28,6 @@ type JobTemplateContext struct {
 	Meta             *JobMetadata
 	GCfg             *Config
 	JCfg             JobConfig
-	FINISH_MAGIC     string
 	FILENAME_LEN_LEN uint
 }
 
@@ -46,7 +45,6 @@ func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
 		Meta:             metadata,
 		GCfg:             job.gcfg,
 		JCfg:             job.cfg,
-		FINISH_MAGIC:     JOB_FINISH,
 		FILENAME_LEN_LEN: STORAGE_FILENAME_LEN_LEN,
 	})
 	if err != nil {
@@ -188,6 +186,7 @@ func (job *Job) Run() *JobMetadata {
 	}()
 
 	output, errput, err := job.execute(metadata.Script)
+	job.storage.RemoveJob(metadata.TaskId)
 
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())

@@ -163,9 +163,7 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	}
 
 	if conn.CurrentFilename == JOB_FINISH {
-		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
-		conn.logger.Debug("sending event to finishedChan")
-		stor.jobManager.RemoveJob <- conn.currentJob.TaskId
+		conn.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
 		return
 	}
 
