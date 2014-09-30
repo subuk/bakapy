@@ -56,15 +56,13 @@ func main() {
 
 	storage.Start()
 	scheduler.Start()
-	go func() {
-		for {
-			err := storage.CleanupExpired()
-			if err != nil {
-				logger.Warning("cleanup failed: %s", err.Error())
-			}
-			time.Sleep(time.Minute)
-		}
-	}()
 
-	select {}
+	for {
+		err := storage.CleanupExpired()
+		if err != nil {
+			logger.Warning("cleanup failed: %s", err.Error())
+		}
+		time.Sleep(time.Minute)
+	}
+
 }
