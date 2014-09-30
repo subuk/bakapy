@@ -54,6 +54,10 @@ func (stor *Storage) Start() {
 
 func (stor *Storage) CleanupExpired() error {
 	visit := func(metaPath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if f.IsDir() {
 			return nil
 		}
