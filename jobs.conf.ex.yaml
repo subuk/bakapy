@@ -37,7 +37,7 @@ example:
   #
   # This job files will be saved next $max_age_days days
   #
-  max_age_days: 3
+  max_age_days: -1
 
   #
   # Gzip on storage
