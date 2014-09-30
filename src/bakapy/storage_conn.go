@@ -60,7 +60,7 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	}
 	conn.TaskId = TaskId(taskId)
-	currentJob := conn.stor.GetCurrentJob(conn.TaskId)
+	currentJob := conn.stor.GetActiveJob(conn.TaskId)
 	if currentJob == nil {
 		msg := fmt.Sprintf("Cannot find task id '%s' in current job list (%s), closing connection", taskId, conn.stor.GetCurrentJobIds())
 		return errors.New(msg)
@@ -160,6 +160,7 @@ func (conn *StorageConn) SaveFile() error {
 
 	fileMeta.Size = written
 	fileMeta.EndTime = time.Now()
+	conn.logger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
 	conn.currentJob.FileAddChan <- fileMeta
 
 	conn.logger.Info("file saved %s", savePath)

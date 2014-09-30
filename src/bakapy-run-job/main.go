@@ -37,9 +37,8 @@ func main() {
 
 	job := bakapy.NewJob(
 		jobName, jobConfig,
-		storage.JobsChan, config,
+		config, storage,
 	)
 	storage.Start()
 	bakapy.RunJob(job, config, logger)
-	storage.Wait()
 }

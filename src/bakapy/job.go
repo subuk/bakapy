@@ -14,11 +14,11 @@ import (
 )
 
 type Job struct {
-	Name     string
-	storJobs chan StorageCurrentJob
-	cfg      JobConfig
-	gcfg     *Config
-	logger   *logging.Logger
+	Name    string
+	storage *Storage
+	cfg     JobConfig
+	gcfg    *Config
+	logger  *logging.Logger
 }
 
 type TaskId string
@@ -163,14 +163,17 @@ func (job *Job) Run() *JobMetadata {
 	}
 
 	fileAddChan := make(chan JobMetadataFile, 5)
-	job.storJobs <- StorageCurrentJob{
-		Gzip:        job.cfg.Gzip,
-		TaskId:      metadata.TaskId,
-		Namespace:   job.cfg.Namespace,
-		FileAddChan: fileAddChan,
-	}
+	storJobFinishedChan := make(chan int)
 
-	stopUpdater := make(chan int, 1)
+	job.storage.AddJob(StorageCurrentJob{
+		Gzip:            job.cfg.Gzip,
+		TaskId:          metadata.TaskId,
+		Namespace:       job.cfg.Namespace,
+		FileAddChan:     fileAddChan,
+		JobFinishedChan: storJobFinishedChan,
+	})
+
+	stopUpdater := make(chan int)
 	go func() {
 		defer job.logger.Debug("metadata update routine stopped")
 		for {
@@ -179,6 +182,7 @@ func (job *Job) Run() *JobMetadata {
 				job.logger.Debug("Adding new file metadata: %s", meta.String())
 				metadata.Files = append(metadata.Files, meta)
 			case _ = <-stopUpdater:
+				close(fileAddChan)
 				return
 			}
 		}
@@ -210,6 +214,10 @@ func (job *Job) Run() *JobMetadata {
 	for _, fileMeta := range metadata.Files {
 		metadata.TotalSize += fileMeta.Size
 	}
+
+	job.logger.Debug("waiting storage")
+	job.storage.WaitJob(metadata.TaskId)
+
 	return metadata
 }
 
@@ -217,13 +225,13 @@ func (job *Job) IsDisabled() bool {
 	return job.cfg.Disabled
 }
 
-func NewJob(name string, cfg JobConfig, storJobs chan StorageCurrentJob, globalConfig *Config) *Job {
+func NewJob(name string, cfg JobConfig, globalConfig *Config, storage *Storage) *Job {
 	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
 	return &Job{
-		Name:     name,
-		cfg:      cfg,
-		logger:   logging.MustGetLogger(loggerName),
-		storJobs: storJobs,
-		gcfg:     globalConfig,
+		Name:    name,
+		cfg:     cfg,
+		logger:  logging.MustGetLogger(loggerName),
+		storage: storage,
+		gcfg:    globalConfig,
 	}
 }

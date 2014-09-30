@@ -38,7 +38,7 @@ func main() {
 		logger.Info("adding job %s{%s} to scheduler", jobName, runSpec)
 		job := bakapy.NewJob(
 			jobName, jobConfig,
-			storage.JobsChan, config,
+			config, storage,
 		)
 		if job.IsDisabled() {
 			logger.Warning("job %s disabled, skipping", job.Name)

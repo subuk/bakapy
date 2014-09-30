@@ -11,10 +11,11 @@ import (
 )
 
 type StorageCurrentJob struct {
-	TaskId      TaskId
-	FileAddChan chan JobMetadataFile
-	Namespace   string
-	Gzip        bool
+	TaskId          TaskId
+	FileAddChan     chan JobMetadataFile
+	Namespace       string
+	Gzip            bool
+	JobFinishedChan chan int
 }
 
 type Storage struct {
@@ -22,7 +23,7 @@ type Storage struct {
 	MetadataDir string
 	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
-	JobsChan    chan StorageCurrentJob
+	jobManager  *StorageJobManager
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
@@ -32,19 +33,11 @@ func NewStorage(cfg *Config) *Storage {
 		MetadataDir: cfg.MetadataDir,
 		RootDir:     cfg.StorageDir,
 		currentJobs: make(map[TaskId]StorageCurrentJob),
-		JobsChan:    make(chan StorageCurrentJob, 5),
 		connections: make(chan *StorageConn),
+		jobManager:  NewStorageJobManager(),
 		listenAddr:  cfg.Listen,
 		logger:      logging.MustGetLogger("bakapy.storage"),
 	}
-}
-
-func (stor *Storage) GetCurrentJob(taskId TaskId) *StorageCurrentJob {
-	jobEvent, exist := stor.currentJobs[taskId]
-	if exist {
-		return &jobEvent
-	}
-	return nil
 }
 
 func (stor *Storage) Start() {
@@ -129,23 +122,21 @@ func (stor *Storage) Listen() net.Listener {
 }
 
 func (stor *Storage) GetCurrentJobIds() []TaskId {
-	keys := make([]TaskId, 0, len(stor.currentJobs))
+	jobs := stor.jobManager.GetJobs()
+	keys := make([]TaskId, len(jobs))
 	for k := range stor.currentJobs {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
+func (stor *Storage) AddJob(currentJob StorageCurrentJob) {
+	stor.jobManager.AddJob <- currentJob
+}
+
 func (stor *Storage) Serve(ln net.Listener) {
 	for {
-		select {
-		case event := <-stor.JobsChan:
-			stor.logger.Info("new job %s", event.TaskId)
-			stor.currentJobs[event.TaskId] = event
-		case conn := <-stor.connections:
-			go stor.handleConnection(conn)
-		}
-
+		go stor.handleConnection(<-stor.connections)
 	}
 }
 
@@ -158,6 +149,11 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		return
 	}
 
+	stor.jobManager.AddConnection <- conn.TaskId
+	defer func() {
+		stor.jobManager.RemoveConnection <- conn.TaskId
+	}()
+
 	if err = conn.ReadFilename(); err != nil {
 		conn.logger.Warning("cannot read filename: %s. closing connection", err)
 		return
@@ -165,8 +161,8 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 
 	if conn.CurrentFilename == JOB_FINISH {
 		conn.logger.Debug("got magic word '%s' as filename - job finished", JOB_FINISH)
-		conn.logger.Info("removing from active jobs list")
-		delete(stor.currentJobs, conn.TaskId)
+		conn.logger.Debug("sending event to finishedChan")
+		stor.jobManager.RemoveJob <- conn.currentJob
 		return
 	}
 
@@ -174,13 +170,18 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		conn.logger.Warning("cannot save file: %s. closing connection", err)
 		return
 	}
+	return
 }
 
-func (stor *Storage) Wait() {
+func (stor *Storage) GetActiveJob(taskId TaskId) *StorageCurrentJob {
+	return stor.jobManager.GetJob(taskId)
+}
+
+func (stor *Storage) WaitJob(taskId TaskId) {
 	for {
-		if len(stor.GetCurrentJobIds()) == 0 {
+		if stor.jobManager.GetJob(taskId) == nil {
 			return
 		}
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 100)
 	}
 }
