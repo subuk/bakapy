@@ -49,15 +49,6 @@ func (stor *Storage) GetCurrentJob(taskId TaskId) *StorageCurrentJob {
 
 func (stor *Storage) Start() {
 	ln := stor.Listen()
-	go func() {
-		for {
-			err := stor.CleanupExpired()
-			if err != nil {
-				stor.logger.Warning("cleanup failed: %s", err.Error())
-			}
-			time.Sleep(time.Minute)
-		}
-	}()
 	go stor.Serve(ln)
 }
 

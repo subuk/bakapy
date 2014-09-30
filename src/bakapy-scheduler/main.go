@@ -7,6 +7,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/robfig/cron"
 	"os"
+	"time"
 )
 
 var logger = logging.MustGetLogger("bakapy.scheduler")
@@ -55,6 +56,15 @@ func main() {
 
 	storage.Start()
 	scheduler.Start()
+	go func() {
+		for {
+			err := storage.CleanupExpired()
+			if err != nil {
+				logger.Warning("cleanup failed: %s", err.Error())
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
 
 	select {}
 }
