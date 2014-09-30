@@ -67,7 +67,7 @@ func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
 	return script.Bytes(), nil
 }
 
-func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buffer, err error) {
+func (job *Job) GetCmd() (*exec.Cmd, error) {
 	var remoteCmd string
 	env := make([]string, len(job.cfg.Args))
 	for argName, argValue := range job.cfg.Args {
@@ -83,7 +83,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 
 	sshBin, err := exec.LookPath("ssh")
 	if err != nil {
-		return new(bytes.Buffer), new(bytes.Buffer), err
+		return nil, err
 	}
 
 	args := []string{
@@ -93,21 +93,29 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 		remoteCmd,
 	}
 
-	job.logger.Debug(string(script))
-	cmd := exec.Cmd{
+	cmd := &exec.Cmd{
 		Path: args[0],
 		Args: args,
 	}
+	return cmd, nil
+}
 
+func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buffer, err error) {
 	output = new(bytes.Buffer)
 	errput = new(bytes.Buffer)
+
+	cmd, err := job.GetCmd()
+	if err != nil {
+		return output, errput, err
+	}
 
 	cmd.Stderr = errput
 	cmd.Stdout = output
 	cmd.Stdin = bytes.NewReader(script)
 
+	job.logger.Debug(string(script))
 	job.logger.Debug("executing command '%s'",
-		strings.Join(args, " "))
+		strings.Join(cmd.Args, " "))
 
 	err = cmd.Start()
 	if err != nil {
