@@ -13,9 +13,17 @@ RUN apt-get install -y wget dpkg-dev cdbs ssh tar autopkgtest
 RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.3.2.linux-amd64.tar.gz
 RUN tar -xf go1.3.2.linux-amd64.tar.gz
 
-ADD . /bakapy-source
+ADD . /home/builder/bakapy-source
+
+ENV HOME /home/builder
+RUN useradd -s /bin/bash -d $HOME builder
+RUN chown builder. /home/builder -R
+USER builder
+
 ENV PATH /go/bin:$PATH
 ENV GOROOT /go
-RUN cd /bakapy-source && dpkg-buildpackage -us -uc
+RUN cd /home/builder/bakapy-source && dpkg-buildpackage -us -uc
+
+USER root
 RUN mkdir -p /packages
-RUN mv /*.deb /packages
+RUN mv /home/builder/*.deb /packages

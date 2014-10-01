@@ -10,17 +10,21 @@ ADD . /bakapy-source
 
 ENV PATH /go/bin:$PATH
 ENV GOROOT /go
-ENV HOME /root
-
-RUN rpmdev-setuptree
+ENV HOME /home/builder
 
 RUN cat /bakapy-source/bakapy.spec.in |grep '^%changelog$' -A1| awk '{print $NF}'|tail -1|cut -d '-' -f 1 > /VERSION
 RUN cat /bakapy-source/bakapy.spec.in |grep '^%changelog$' -A1| awk '{print $NF}'|tail -1|cut -d '-' -f 2 > /RELEASE
 
-RUN sed -e "s/@@_VERSION_@@/$(cat /VERSION)/g" -e "s/@@_RELEASE_@@/$(cat /RELEASE)/g" /bakapy-source/bakapy.spec.in > /bakapy-source/bakapy.spec
-RUN rm -f /bakapy-source/bakapy.spec.in
-RUN tar -C /bakapy-source --exclude=.git --exclude=native-packages --transform "s,^\.,bakapy-$(cat /VERSION)," -czf $HOME/rpmbuild/SOURCES/bakapy-$(cat /VERSION).tar.gz .
-RUN rpmbuild -v -ba /bakapy-source/bakapy.spec
+RUN useradd -m -s /bin/bash -d $HOME builder
+USER builder
+
+RUN rpmdev-setuptree
+
+RUN sed -e "s/@@_VERSION_@@/$(cat /VERSION)/g" -e "s/@@_RELEASE_@@/$(cat /RELEASE)/g" /bakapy-source/bakapy.spec.in > $HOME/bakapy.spec
+RUN tar -C /bakapy-source --exclude=bakapy.spec.in --exclude=.git --exclude=native-packages --transform "s,^\.,bakapy-$(cat /VERSION)," -czf $HOME/rpmbuild/SOURCES/bakapy-$(cat /VERSION).tar.gz .
+RUN rpmbuild -v -ba $HOME/bakapy.spec
+
+USER root
 
 RUN mkdir /packages
 RUN find $HOME/rpmbuild/RPMS $HOME/rpmbuild/SRPMS -type f |xargs -I{} -n1 cp {} /packages
