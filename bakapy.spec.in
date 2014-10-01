@@ -40,6 +40,11 @@ rm -rf $RPM_BUILD_ROOT
 %attr(644,root,root) /etc/init/bakapy.conf
 
 %changelog
+* Thu Oct 02 2014 00:09:34 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.6-1
+- Exit with correct exit code if configuration error occured
+- Allow job max age lower than 1 day
+- Improve packaging
+
 * Wed Oct 01 2014 01:42:42 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.5-1
 - Commands should not send magic word on stop anymore
 - Add ability to run jobs locally

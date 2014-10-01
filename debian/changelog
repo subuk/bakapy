@@ -1,3 +1,11 @@
+bakapy (0.6) testing; urgency=medium
+
+  * Exit with correct exit code if configuration error occured
+  * Allow job max age lower than 1 day
+  * Improve packaging
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Thu, 02 Oct 2014 00:09:34 +0400
+
 bakapy (0.5) testing; urgency=medium
 
   * Commands should not send magic word on stop anymore
