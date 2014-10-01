@@ -3,7 +3,7 @@
 include /usr/share/cdbs/1/rules/debhelper.mk
 
 clean::
-	rm -rf bin/ pkg/ vendor/bin vendor/pkg
+	./clean.sh
 
 build:
 	./build.sh
