@@ -25,7 +25,8 @@ func main() {
 
 	config, err := bakapy.ParseConfig(*CONFIG_PATH)
 	if err != nil {
-		logger.Fatal("Error: ", err)
+		fmt.Fprintf(os.Stderr, "Configuration error: %s\n", err)
+		os.Exit(1)
 	}
 
 	logger.Debug(string(config.PrettyFmt()))
