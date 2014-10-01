@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 type Config struct {
@@ -79,13 +80,24 @@ type JobConfig struct {
 	Sudo       bool
 	Disabled   bool
 	Gzip       bool
-	MaxAgeDays int `yaml:"max_age_days"`
+	MaxAgeDays int           `yaml:"max_age_days"`
+	MaxAge     time.Duration `yaml:"max_age"`
 	Namespace  string
 	Host       string
 	Port       uint
 	Command    string
 	Args       map[string]string
 	RunAt      RunAtSpec `yaml:"run_at"`
+}
+
+func (jobConfig *JobConfig) Sanitize() error {
+	if jobConfig.MaxAgeDays != 0 && jobConfig.MaxAge != 0 {
+		return errors.New("both max_age and max_age_days defined")
+	}
+	if jobConfig.MaxAgeDays != 0 {
+		jobConfig.MaxAge = time.Duration(jobConfig.MaxAgeDays) * time.Hour * 24
+	}
+	return nil
 }
 
 func NewConfig() *Config {
@@ -135,6 +147,10 @@ func ParseConfig(configPath string) (*Config, error) {
 					return nil, errors.New(errString)
 				}
 				jobDefines[name] = path
+				err := params.Sanitize()
+				if err != nil {
+					return nil, errors.New("file " + path + ", job '" + name + "' - " + err.Error())
+				}
 				cfg.Jobs[name] = params
 			}
 		}

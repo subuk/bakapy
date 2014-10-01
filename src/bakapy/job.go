@@ -149,6 +149,7 @@ func (job *Job) Run() *JobMetadata {
 		TaskId:    TaskId(uuid.NewUUID().String()),
 		Success:   false,
 	}
+	metadata.ExpireTime = metadata.StartTime.Add(job.cfg.MaxAge)
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", job.Name, metadata.TaskId)
 	job.logger = logging.MustGetLogger(loggerName)
 	job.logger.Info("starting up")
@@ -204,7 +205,6 @@ func (job *Job) Run() *JobMetadata {
 	metadata.Success = true
 	metadata.Message = "OK"
 	metadata.EndTime = time.Now()
-	metadata.ExpireTime = time.Now().Add(time.Hour * 24 * time.Duration(job.cfg.MaxAgeDays))
 	metadata.TotalSize = 0
 	for _, fileMeta := range metadata.Files {
 		metadata.TotalSize += fileMeta.Size

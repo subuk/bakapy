@@ -37,7 +37,13 @@ example:
   #
   # This job files will be saved next $max_age_days days
   #
-  max_age_days: -1
+  # max_age_days: 7
+
+  #
+  # If you need smaller max age than 1 day, specify it as max_age (but not both!).
+  # Valid time units are "ns", ms", "s", "m", "h".
+  #
+  max_age: 15m
 
   #
   # Gzip on storage
