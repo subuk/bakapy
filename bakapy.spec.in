@@ -1,7 +1,7 @@
 Summary: Bakapy backup framework
 Name: bakapy
-Version: %{version}
-Release: %{release}%{dist}
+Version: @@_VERSION_@@
+Release: @@_RELEASE_@@%{dist}
 Source0: http://bakapy.org/download/bakapy-%{version}.tar.gz
 License: GPLv3
 Group: Backup
@@ -29,7 +29,6 @@ cp -r bakapy.conf.ex.yaml %{buildroot}/etc/bakapy/bakapy.conf
 cp -r jobs.conf.ex.yaml %{buildroot}/etc/bakapy/jobs.conf
 cp -f debian/bakapy.upstart %{buildroot}/etc/init/bakapy.conf
 
-
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -39,3 +38,16 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_prefix}/bin/bakapy-show-meta
 %config(noreplace) /etc/bakapy
 %attr(644,root,root) /etc/init/bakapy.conf
+
+%changelog
+* Wed Oct 01 2014 01:42:42 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.5-1
+- Commands should not send magic word on stop anymore
+- Add ability to run jobs locally
+- Fix panic on cleanup old tasks if storage metadata folder does not exist yet
+- Ubuntu 14.04 package builds
+- Many stability improvements
+
+* Tue Sep 30 2014 11:24:59 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.2.1-1
+- Gzip databases backups on client and fix job start_time var
+- Fix typo in backup-mysql script
+- Always use bufio for backup files writing
