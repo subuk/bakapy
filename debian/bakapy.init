@@ -62,16 +62,13 @@ case "$1" in
         else
             ulimit -p 1048576
         fi
-
         log_begin_msg "Starting $BAKAPY_DESC: $BASE"
         start-stop-daemon --start --background \
             --no-close \
             --exec "$BAKAPY" \
             --pidfile "$BAKAPY_SSD_PIDFILE" \
             --make-pidfile \
-            -- \
-                $BAKAPY_OPTS \
-                    &>> "$BAKAPY_LOGFILE" 2>&1
+            -- $BAKAPY_OPTS >> "$BAKAPY_LOGFILE" 2>&1
         log_end_msg $?
         ;;
 
