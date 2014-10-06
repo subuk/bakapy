@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -171,19 +170,13 @@ func (job *Job) Run() *JobMetadata {
 		FileAddChan: fileAddChan,
 	})
 
-	stopUpdater := make(chan int, 1)
 	go func() {
-		for {
-			select {
-			case meta := <-fileAddChan:
-				job.logger.Debug("Adding new file metadata: %s", meta.String())
-				metadata.Files = append(metadata.Files, meta)
-			case <-stopUpdater:
-				close(fileAddChan)
-				job.logger.Debug("metadata update routine stopped")
-				return
-			}
+		for fileMeta := range fileAddChan {
+			job.logger.Debug("adding new file metadata: %s", fileMeta.String())
+			metadata.Files = append(metadata.Files, fileMeta)
+			metadata.TotalSize += fileMeta.Size
 		}
+		job.logger.Debug("filemeta updater stopped")
 	}()
 
 	output, errput, err := job.execute(metadata.Script)
@@ -206,14 +199,10 @@ func (job *Job) Run() *JobMetadata {
 	metadata.Message = "OK"
 	metadata.EndTime = time.Now()
 	metadata.TotalSize = 0
-	for _, fileMeta := range metadata.Files {
-		metadata.TotalSize += fileMeta.Size
-	}
 
 	job.logger.Debug("waiting storage")
 	job.storage.WaitJob(metadata.TaskId)
-	stopUpdater <- 1
-	runtime.Gosched() // Hack
+	close(fileAddChan)
 	return metadata
 }
 
