@@ -38,6 +38,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_prefix}/bin/bakapy-show-meta
 %config(noreplace) /etc/bakapy
 %attr(644,root,root) /etc/init/bakapy.conf
+%doc LICENSE
 
 %changelog
 * Thu Oct 02 2014 00:09:34 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.6-1
