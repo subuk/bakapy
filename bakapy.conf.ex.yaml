@@ -23,6 +23,13 @@ metadata_dir: /tmp/backups/metadata
 listen: 127.0.0.1:9876
 
 #
+# Notification settings
+#
+# smtp:
+#   host: 127.0.0.1
+#   port: 25
+
+#
 # Job definition files list (relative to this file).
 # May contain globs, eg:
 # - /etc/bakaup/jobs/*.conf

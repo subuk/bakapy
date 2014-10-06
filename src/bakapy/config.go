@@ -13,13 +13,19 @@ import (
 type Config struct {
 	IncludeJobs []string `yaml:"include_jobs"`
 	Listen      string
-	StorageDir  string    `yaml:"storage_dir"`
-	MetadataDir string    `yaml:"metadata_dir"`
-	StatusDir   string    `yaml:"status_dir"`
-	CommandDir  string    `yaml:"command_dir"`
-	Ports       PortRange `yaml:"port_range"`
+	StorageDir  string     `yaml:"storage_dir"`
+	MetadataDir string     `yaml:"metadata_dir"`
+	StatusDir   string     `yaml:"status_dir"`
+	CommandDir  string     `yaml:"command_dir"`
+	SMTP        SMTPConfig `yaml:"smtp"`
+	Ports       PortRange  `yaml:"port_range"`
 	Options     GlobalOptions
 	Jobs        map[string]JobConfig
+}
+
+type SMTPConfig struct {
+	Host string
+	Port int
 }
 
 func (cfg *Config) PrettyFmt() []byte {
