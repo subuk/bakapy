@@ -3,6 +3,7 @@ package bakapy
 import (
 	"fmt"
 	"github.com/op/go-logging"
+	"log/syslog"
 	"net/smtp"
 	"os"
 	"os/user"
@@ -11,9 +12,14 @@ import (
 )
 
 func SetupLogging(logLevel string) error {
-	format := "%{color}%{time:2006-01-01 15:04:05} %{level:.8s} %{module} %{message}%{color:reset}"
-	logBackend := logging.NewLogBackend(os.Stderr, "", 0)
-	logging.SetBackend(logBackend)
+	format := "%{level:.8s} %{module} %{message}"
+	stderrBackend := logging.NewLogBackend(os.Stderr, "", 0)
+	syslogBackend, err := logging.NewSyslogBackendPriority("", syslog.LOG_CRIT|syslog.LOG_DAEMON)
+	if err != nil {
+		return err
+	}
+
+	logging.SetBackend(stderrBackend, syslogBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
 	level, err := logging.LogLevel(strings.ToUpper(logLevel))
 	if err != nil {
