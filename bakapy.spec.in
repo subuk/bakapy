@@ -7,6 +7,7 @@ License: GPLv3
 Group: Backup
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Vendor: Subuk
+Requires(pre): /usr/sbin/useradd /usr/sbin/groupadd /usr/bin/getent
 
 %description
 Bakapy backup framework
@@ -22,23 +23,41 @@ install -m 755 -d %{buildroot}/usr/bin
 install -m 755 -d %{buildroot}/etc
 install -m 755 -d %{buildroot}/etc/init
 install -m 755 -d %{buildroot}/etc/bakapy
+install -m 755 -d %{buildroot}/etc/bakapy/jobs
+install -m 750 -d %{buildroot}/var/lib/bakapy
+install -m 750 -d %{buildroot}/var/lib/bakapy/data
+install -m 750 -d %{buildroot}/var/lib/bakapy/meta
 
 cp -r bin/ %{buildroot}/usr/
 cp -r commands/ %{buildroot}/etc/bakapy/
-cp -r bakapy.conf.ex.yaml %{buildroot}/etc/bakapy/bakapy.conf
-cp -r jobs.conf.ex.yaml %{buildroot}/etc/bakapy/jobs.conf
 cp -f debian/bakapy.upstart %{buildroot}/etc/init/bakapy.conf
+cp -f bakapy.conf %{buildroot}/etc/bakapy/bakapy.conf
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%pre
+/usr/bin/getent group bakapy || /usr/sbin/groupadd --system bakapy
+/usr/bin/getent passwd bakapy || /usr/sbin/useradd --system --home-dir /var/lib/bakapy --shell /bin/false --gid bakapy bakapy
+
+%postun
+test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
+/usr/sbin/userdel bakapy
+
 %files
-%attr(755,root,root) %{_prefix}/bin/bakapy-scheduler
-%attr(755,root,root) %{_prefix}/bin/bakapy-run-job
-%attr(755,root,root) %{_prefix}/bin/bakapy-show-meta
-%config(noreplace) /etc/bakapy
+%attr(755,root,root) /usr/bin/bakapy-scheduler
+%attr(755,root,root) /usr/bin/bakapy-run-job
+%attr(755,root,root) /usr/bin/bakapy-show-meta
 %attr(644,root,root) /etc/init/bakapy.conf
+%config(noreplace) /etc/bakapy/jobs
+%config(noreplace) /etc/bakapy/commands
+%config(noreplace) /etc/bakapy/bakapy.conf
+%attr(750,bakapy,bakapy) /var/lib/bakapy/data
+%attr(750,bakapy,bakapy) /var/lib/bakapy/meta
 %doc LICENSE
+%doc bakapy.conf.ex.yaml
+%doc jobs.conf.ex.yaml
+
 
 %changelog
 * Thu Oct 02 2014 00:09:34 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.6-1
