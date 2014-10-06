@@ -11,7 +11,7 @@ import (
 )
 
 func SetupLogging(logLevel string) error {
-	format := "%{color}%{time:15:04:05} %{level:.8s} %{module} %{message}%{color:reset}"
+	format := "%{color}%{time:2006-01-01 15:04:05} %{level:.8s} %{module} %{message}%{color:reset}"
 	logBackend := logging.NewLogBackend(os.Stderr, "", 0)
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
