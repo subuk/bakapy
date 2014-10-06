@@ -13,14 +13,6 @@ import (
 	"time"
 )
 
-type Job struct {
-	Name    string
-	storage *Storage
-	cfg     JobConfig
-	gcfg    *Config
-	logger  *logging.Logger
-}
-
 type TaskId string
 
 type JobTemplateContext struct {
@@ -36,6 +28,25 @@ func (jctx *JobTemplateContext) ToHost() string {
 
 func (jctx *JobTemplateContext) ToPort() string {
 	return strings.Split(jctx.GCfg.Listen, ":")[1]
+}
+
+type Job struct {
+	Name    string
+	storage *Storage
+	cfg     JobConfig
+	gcfg    *Config
+	logger  *logging.Logger
+}
+
+func NewJob(name string, cfg JobConfig, globalConfig *Config, storage *Storage) *Job {
+	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
+	return &Job{
+		Name:    name,
+		cfg:     cfg,
+		logger:  logging.MustGetLogger(loggerName),
+		storage: storage,
+		gcfg:    globalConfig,
+	}
 }
 
 func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
@@ -212,15 +223,4 @@ func (job *Job) Run() *JobMetadata {
 
 func (job *Job) IsDisabled() bool {
 	return job.cfg.Disabled
-}
-
-func NewJob(name string, cfg JobConfig, globalConfig *Config, storage *Storage) *Job {
-	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
-	return &Job{
-		Name:    name,
-		cfg:     cfg,
-		logger:  logging.MustGetLogger(loggerName),
-		storage: storage,
-		gcfg:    globalConfig,
-	}
 }
