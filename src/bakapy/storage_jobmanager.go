@@ -2,91 +2,87 @@ package bakapy
 
 import (
 	"github.com/op/go-logging"
+	"sync"
 )
 
-type StorageJobManager struct {
-	AddJob           chan StorageCurrentJob
-	AddConnection    chan TaskId
-	RemoveJob        chan TaskId
-	RemoveConnection chan TaskId
+type getJobRequest struct {
+	id   TaskId
+	resp chan StorageCurrentJob
+}
 
+type StorageJobManager struct {
+	jobMu              sync.RWMutex
+	connMu             sync.RWMutex
 	currentJobs        map[TaskId]StorageCurrentJob
 	jobConnectionCount map[TaskId]int
+	logger             *logging.Logger
 }
 
 func NewStorageJobManager() *StorageJobManager {
 	m := &StorageJobManager{
-		AddJob:             make(chan StorageCurrentJob, 5),
-		AddConnection:      make(chan TaskId, 5),
-		RemoveJob:          make(chan TaskId, 5),
-		RemoveConnection:   make(chan TaskId, 5),
 		currentJobs:        make(map[TaskId]StorageCurrentJob, 30),
 		jobConnectionCount: make(map[TaskId]int, 30),
+		logger:             logging.MustGetLogger("bakapy.storage.jobmanager"),
 	}
-	go m.handle()
-
 	return m
 }
 
-func (m *StorageJobManager) GetJobs() map[TaskId]StorageCurrentJob {
-	return m.currentJobs
-}
-
-func (m *StorageJobManager) GetJob(taskId TaskId) *StorageCurrentJob {
-	job, exist := m.currentJobs[taskId]
-	if !exist {
-		return nil
-	}
-	return &job
-}
-
-func (m *StorageJobManager) HasConnections(taskId TaskId) bool {
+func (m *StorageJobManager) JobConnectionCount(taskId TaskId) int {
+	m.connMu.RLock()
+	defer m.connMu.RUnlock()
 	count, exist := m.jobConnectionCount[taskId]
 	if !exist {
-		return false
+		return 0
 	}
-	if count <= 0 {
-		return false
-	}
-	return true
+	return count
 }
 
-func (m *StorageJobManager) handle() {
-	logger := logging.MustGetLogger("bakapy.storage.jobmanager")
-	for {
-		select {
+func (m *StorageJobManager) AddJob(job *StorageCurrentJob) {
+	m.jobMu.Lock()
+	defer m.jobMu.Unlock()
+	m.currentJobs[job.TaskId] = *job
+}
 
-		case activeJob := <-m.AddJob:
-			logger.Debug("adding job %s", activeJob.TaskId)
-			m.currentJobs[activeJob.TaskId] = activeJob
+func (m *StorageJobManager) RemoveJob(id TaskId) {
+	m.jobMu.Lock()
+	defer m.jobMu.Unlock()
+	delete(m.currentJobs, id)
+}
 
-		case taskId := <-m.RemoveJob:
-			logger.Debug("removing job %s", taskId)
-			delete(m.currentJobs, taskId)
-
-		case taskId := <-m.AddConnection:
-			_, exist := m.jobConnectionCount[taskId]
-			if !exist {
-				m.jobConnectionCount[taskId] = 0
-			}
-			m.jobConnectionCount[taskId] += 1
-			logger.Debug("connection count for task %s increased, now %d",
-				taskId, m.jobConnectionCount[taskId])
-
-		case taskId := <-m.RemoveConnection:
-			_, exist := m.jobConnectionCount[taskId]
-			if !exist {
-				m.jobConnectionCount[taskId] = 0
-			}
-			m.jobConnectionCount[taskId] -= 1
-			logger.Debug("connection count for task %s decreased, now %d",
-				taskId, m.jobConnectionCount[taskId])
-
-			if m.GetJob(taskId) == nil && m.jobConnectionCount[taskId] == 0 {
-				delete(m.jobConnectionCount, taskId)
-			}
-
-		}
-
+func (m *StorageJobManager) AddConnection(id TaskId) {
+	m.connMu.Lock()
+	defer m.connMu.Unlock()
+	_, exist := m.jobConnectionCount[id]
+	if !exist {
+		m.jobConnectionCount[id] = 0
 	}
+	m.jobConnectionCount[id] += 1
+	m.logger.Debug("connection count for task %s increased, now %d",
+		id, m.jobConnectionCount[id])
+}
+
+func (m *StorageJobManager) RemoveConnection(id TaskId) {
+	m.connMu.Lock()
+	defer m.connMu.Unlock()
+
+	_, exist := m.jobConnectionCount[id]
+	if !exist {
+		return
+	}
+	m.jobConnectionCount[id] -= 1
+	m.logger.Debug("connection count for task %s decreased, now %d",
+		id, m.jobConnectionCount[id])
+
+	_, exist = m.GetJob(id)
+	if !exist && m.jobConnectionCount[id] <= 0 {
+		delete(m.jobConnectionCount, id)
+	}
+
+}
+
+func (m *StorageJobManager) GetJob(id TaskId) (StorageCurrentJob, bool) {
+	m.jobMu.RLock()
+	defer m.jobMu.RUnlock()
+	job, exist := m.currentJobs[id]
+	return job, exist
 }

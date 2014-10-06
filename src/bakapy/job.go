@@ -164,7 +164,7 @@ func (job *Job) Run() *JobMetadata {
 
 	fileAddChan := make(chan JobMetadataFile, 20)
 
-	job.storage.AddJob(StorageCurrentJob{
+	job.storage.AddJob(&StorageCurrentJob{
 		Gzip:        job.cfg.Gzip,
 		TaskId:      metadata.TaskId,
 		Namespace:   job.cfg.Namespace,

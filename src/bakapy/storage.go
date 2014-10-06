@@ -120,21 +120,12 @@ func (stor *Storage) Listen() net.Listener {
 	return ln
 }
 
-func (stor *Storage) GetCurrentJobIds() []TaskId {
-	jobs := stor.jobManager.GetJobs()
-	keys := make([]TaskId, len(jobs))
-	for k := range stor.currentJobs {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-func (stor *Storage) AddJob(currentJob StorageCurrentJob) {
-	stor.jobManager.AddJob <- currentJob
+func (stor *Storage) AddJob(currentJob *StorageCurrentJob) {
+	stor.jobManager.AddJob(currentJob)
 }
 
 func (stor *Storage) RemoveJob(id TaskId) {
-	stor.jobManager.RemoveJob <- id
+	stor.jobManager.RemoveJob(id)
 }
 
 func (stor *Storage) Serve(ln net.Listener) {
@@ -152,9 +143,9 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		return
 	}
 
-	stor.jobManager.AddConnection <- conn.TaskId
+	stor.jobManager.AddConnection(conn.TaskId)
 	defer func() {
-		stor.jobManager.RemoveConnection <- conn.TaskId
+		stor.jobManager.RemoveConnection(conn.TaskId)
 	}()
 
 	if err = conn.ReadFilename(); err != nil {
@@ -174,13 +165,14 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 	return
 }
 
-func (stor *Storage) GetActiveJob(taskId TaskId) *StorageCurrentJob {
+func (stor *Storage) GetActiveJob(taskId TaskId) (StorageCurrentJob, bool) {
 	return stor.jobManager.GetJob(taskId)
 }
 
 func (stor *Storage) WaitJob(taskId TaskId) {
 	for {
-		if stor.jobManager.GetJob(taskId) == nil && !stor.jobManager.HasConnections(taskId) {
+		_, jobExist := stor.jobManager.GetJob(taskId)
+		if !jobExist && stor.jobManager.JobConnectionCount(taskId) <= 0 {
 			return
 		}
 		time.Sleep(time.Millisecond * 100)

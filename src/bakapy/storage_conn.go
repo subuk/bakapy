@@ -60,14 +60,14 @@ func (conn *StorageConn) ReadTaskId() error {
 
 	}
 	conn.TaskId = TaskId(taskId)
-	currentJob := conn.stor.GetActiveJob(conn.TaskId)
-	if currentJob == nil {
-		msg := fmt.Sprintf("Cannot find task id '%s' in current job list (%s), closing connection", taskId, conn.stor.GetCurrentJobIds())
+	currentJob, jobExist := conn.stor.GetActiveJob(conn.TaskId)
+	if !jobExist {
+		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
 		return errors.New(msg)
 	}
 
 	conn.logger.Debug("task id '%s' successfully readed.", taskId)
-	conn.currentJob = *currentJob
+	conn.currentJob = currentJob
 	conn.state = STATE_WAIT_FILENAME
 
 	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.RemoteAddr().String(), conn.TaskId)
