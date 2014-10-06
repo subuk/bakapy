@@ -73,6 +73,10 @@ func (job *Job) GetCmd() (*exec.Cmd, error) {
 		env = append(env, arg)
 	}
 
+	if job.cfg.Port == 0 {
+		job.cfg.Port = 22
+	}
+
 	if job.cfg.Sudo {
 		remoteCmd = fmt.Sprintf("sudo %s /bin/bash", strings.Join(env, " "))
 	} else {
