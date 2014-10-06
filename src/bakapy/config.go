@@ -15,11 +15,8 @@ type Config struct {
 	Listen      string
 	StorageDir  string     `yaml:"storage_dir"`
 	MetadataDir string     `yaml:"metadata_dir"`
-	StatusDir   string     `yaml:"status_dir"`
 	CommandDir  string     `yaml:"command_dir"`
 	SMTP        SMTPConfig `yaml:"smtp"`
-	Ports       PortRange  `yaml:"port_range"`
-	Options     GlobalOptions
 	Jobs        map[string]JobConfig
 }
 
@@ -31,31 +28,6 @@ type SMTPConfig struct {
 func (cfg *Config) PrettyFmt() []byte {
 	s, _ := yaml.Marshal(cfg)
 	return s
-}
-
-type GlobalOptions struct {
-	Gzip bool
-	Args map[string]string
-}
-
-type PortRange struct {
-	Start int
-	End   int
-}
-
-func (p *PortRange) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var value map[string]int
-	err := unmarshal(&value)
-	if err != nil {
-		panic(err)
-	}
-
-	if value["start"] >= value["end"] {
-		return errors.New("port_range.start cannot be more or equal than port_range.end")
-	}
-	p.Start = value["start"]
-	p.End = value["end"]
-	return nil
 }
 
 type RunAtSpec struct {
