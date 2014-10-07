@@ -42,7 +42,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %postun
 test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
-/usr/sbin/userdel bakapy
 
 %files
 %attr(755,root,root) /usr/bin/bakapy-scheduler
