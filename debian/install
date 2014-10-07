@@ -1,2 +1,3 @@
 bin/ usr/
 commands etc/bakapy/
+bakapy.conf etc/bakapy
