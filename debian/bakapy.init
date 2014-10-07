@@ -1,6 +1,4 @@
 #!/bin/sh
-set -e
-
 ### BEGIN INIT INFO
 # Provides:           bakapy
 # Required-Start:     $syslog $remote_fs
@@ -23,8 +21,10 @@ BAKAPY=/usr/bin/$BASE
 # This is the pid file created/managed by start-stop-daemon
 BAKAPY_SSD_PIDFILE=/var/run/$BASE-ssd.pid
 BAKAPY_LOGFILE=/var/log/$BASE.log
-BAKAPY_OPTS="--config=/etc/bakapy/bakapy.conf --loglevel=info"
 BAKAPY_DESC="Bakapy"
+
+BAKAPY_CONFIG=/etc/bakapy/bakapy.conf
+BAKAPY_LOGLEVEL=info
 
 # Get lsb functions
 . /lib/lsb/init-functions
@@ -32,6 +32,8 @@ BAKAPY_DESC="Bakapy"
 if [ -f /etc/default/$BASE ]; then
     . /etc/default/$BASE
 fi
+
+BAKAPY_OPTS="--config=${BAKAPY_CONFIG} --loglevel=${BAKAPY_LOGLEVEL} $BAKAPY_OPTS"
 
 # see also init_is_upstart in /lib/lsb/init-functions (which isn't available in Ubuntu 12.04, or we'd use it)
 if [ -x /sbin/initctl ] && /sbin/initctl version 2>/dev/null | grep -q upstart; then
