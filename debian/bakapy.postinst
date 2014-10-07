@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    configure)
+        USERNAME=bakapy
+        HOMEDIR=/var/lib/bakapy
+        if ! getent passwd "$USERNAME"|grep -q "$USERNAME"; then
+            useradd $USERNAME \
+                --system \
+                --create-home \
+                --home-dir $HOMEDIR \
+                --shell /bin/false
+        fi
+
+        install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/data
+        install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/meta
+
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure|install|upgrade)
+    ;;
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
