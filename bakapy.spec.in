@@ -59,6 +59,12 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
 
 %changelog
+* Mon Oct 13 2014 23:31:41 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.7-1
+- Packaging improvements
+- Notifications by email about failed jobs
+- Add date to scheduler log format
+- Syslog logging
+
 * Thu Oct 02 2014 00:09:34 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.6-1
 - Exit with correct exit code if configuration error occured
 - Allow job max age lower than 1 day

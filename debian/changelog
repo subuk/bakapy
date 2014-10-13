@@ -1,3 +1,12 @@
+bakapy (0.7) unstable; urgency=medium
+
+  * Packaging improvements
+  * Notifications by email about failed jobs
+  * Add date to scheduler log format
+  * Syslog logging
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Mon, 13 Oct 2014 23:31:41 +0400
+
 bakapy (0.6) testing; urgency=medium
 
   * Exit with correct exit code if configuration error occured
