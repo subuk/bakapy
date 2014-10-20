@@ -59,6 +59,9 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
 
 %changelog
+* Mon Oct 20 2014 14:52:36 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.7.1-1
+- Fix bug with zero expire time for jobs defined in the main config file
+
 * Mon Oct 13 2014 23:31:41 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.7-1
 - Packaging improvements
 - Notifications by email about failed jobs

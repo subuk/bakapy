@@ -1,3 +1,9 @@
+bakapy (0.7.1) unstable; urgency=medium
+
+  * Fix bug with zero expire time for jobs defined in the main config file
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Mon, 20 Oct 2014 14:52:36 +0400
+
 bakapy (0.7) unstable; urgency=medium
 
   * Packaging improvements
