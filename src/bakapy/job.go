@@ -213,7 +213,6 @@ func (job *Job) Run() *JobMetadata {
 	metadata.Success = true
 	metadata.Message = "OK"
 	metadata.EndTime = time.Now()
-	metadata.TotalSize = 0
 
 	job.logger.Debug("waiting storage")
 	job.storage.WaitJob(metadata.TaskId)
