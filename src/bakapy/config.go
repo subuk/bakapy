@@ -125,13 +125,17 @@ func ParseConfig(configPath string) (*Config, error) {
 					return nil, errors.New(errString)
 				}
 				jobDefines[name] = path
-				err := params.Sanitize()
-				if err != nil {
-					return nil, errors.New("file " + path + ", job '" + name + "' - " + err.Error())
-				}
 				cfg.Jobs[name] = params
 			}
 		}
+	}
+
+	for jobName, jobConfig := range cfg.Jobs {
+		err := jobConfig.Sanitize()
+		if err != nil {
+			return nil, errors.New("job " + jobName + err.Error())
+		}
+		cfg.Jobs[jobName] = jobConfig
 	}
 
 	return cfg, nil
