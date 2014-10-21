@@ -59,6 +59,11 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
 
 %changelog
+* Tue Oct 21 2014 13:58:37 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.7.2-1
+- Add backup-deb-package-list.sh backup command
+- Add Content-Type header to email messages
+- Fix metadata total size calculation
+
 * Mon Oct 20 2014 14:52:36 +0400 Matvey Kruglov <kubuzzzz@gmail.com> 0.7.1-1
 - Fix bug with zero expire time for jobs defined in the main config file
 

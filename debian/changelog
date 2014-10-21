@@ -1,3 +1,11 @@
+bakapy (0.7.2) testing; urgency=medium
+
+  * Add backup-deb-package-list.sh backup command
+  * Add Content-Type header to email messages
+  * Fix metadata total size calculation
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Tue, 21 Oct 2014 13:58:37 +0400
+
 bakapy (0.7.1) unstable; urgency=medium
 
   * Fix bug with zero expire time for jobs defined in the main config file
