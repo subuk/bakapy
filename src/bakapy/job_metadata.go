@@ -46,6 +46,12 @@ type JobMetadata struct {
 }
 
 func (metadata *JobMetadata) Duration() time.Duration {
+	if (metadata.EndTime == time.Time{}) || (metadata.StartTime == time.Time{}) {
+		return time.Duration(0)
+	}
+	if metadata.StartTime.After(metadata.EndTime) {
+		return time.Duration(0)
+	}
 	return metadata.EndTime.Sub(metadata.StartTime)
 }
 
