@@ -5,7 +5,10 @@
 var bakapyApp = angular.module('bakapyApp', [
   'ngRoute',
   'ab-base64',
-  'bakapyControllers'
+  'bakapyControllers',
+  'bakapyFilters',
+  'bakapyDirectives',
+  'bakapyServices'
 ]);
 
 
@@ -19,7 +22,8 @@ bakapyApp.config(['$routeProvider',
     $routeProvider.
       when('/', {
         templateUrl: '/partials/backup-list.html',
-        controller: 'BackupListCtrl'
+        controller: 'BackupListCtrl',
+        reloadOnSearch: false
       }).
       when('/:id', {
         templateUrl: '/partials/backup-details.html',

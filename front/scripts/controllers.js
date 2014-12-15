@@ -4,26 +4,19 @@
 
 var bakapyControllers = angular.module('bakapyControllers', []);
 
-bakapyControllers.controller('BackupListCtrl', ['$scope', '$http',
-  function($scope, $http) {
-    $http.get(CONFIG.METADATA_URL).success(function(data) {
-      $scope.backups = [];
+bakapyControllers.controller('BackupListCtrl', ['$scope', '$http', '$location', '$q', 'Backups',
+  function($scope, $http, $location, $q, Backups) {
+    $scope.sortBySuccess = '';
+    $scope.query = typeof $location.search().q !== 'undefined' ? $location.search().q : '';
+    $scope.backups = Backups;
 
-      var links = jQuery(data).find('a'),
-          expr = /^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/,
-          href,
-          i,
-          j;
-
-      for (i = 0, j = links.length; i < j; i++) {
-        href = links.eq(i).attr('href');
-        if (expr.test(href)) {
-          $http.get(CONFIG.METADATA_URL + '/' + href, {'responseType': 'json'}).success(function(item) {
-            $scope.backups.push(item);
-          });
-        }
+    $scope.changeUriQuery = function changeUriQuery(value) {
+      if (value === '') {
+        return $location.url($location.path());
       }
-    });
+
+      return $location.search('q', value);
+    }
   }]);
 
 bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routeParams', 'base64', 'CONFIG', '$location',
@@ -59,9 +52,6 @@ bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routePara
         AvgSpeed = data.TotalSize / data.Duration;
         data.AvgSpeed = AvgSpeed;
       }
-
-      console.log('data.Duration ', data.Duration)
-      console.log('data.AvgSpeed ', data.AvgSpeed);
 
       $scope.backup = data;
     });

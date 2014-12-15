@@ -4,10 +4,6 @@
     <div class="unit-60 unit-push-left">
       <a class="h1 end app-h-link" href="#/">BAKAPY.<span class="small">backup framework</span></a>
     </div>
-
-    <div class="unit-40 unit-push-right">
-      <input ng-model="query" class="width-100" type="text" placeholder="Enter a phrase to search"/>
-    </div>
   </header><!-- /header -->
 
 
@@ -57,13 +53,10 @@
             </td>
           </tr>
           <tr>
-            <td class="app-table-cell">Files</td>
+            <td class="app-table-cell">ExpireTime</td>
             <td class="app-table-cell">
-              <ul class="list-flat end">
-                <li ng-repeat="file in backup.Files">
-                  <a href="{{ file }}" download>{{ file }}</a>
-                </li>
-              </ul>
+              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}
+              <span class="color-gray-50">&#160;—&#160;{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
             </td>
           </tr>
           <tr>
@@ -71,10 +64,13 @@
             <td class="app-table-cell">{{ backup.TotalSize | bytes }}</td>
           </tr>
           <tr>
-            <td class="app-table-cell">ExpireTime</td>
+            <td class="app-table-cell">Files</td>
             <td class="app-table-cell">
-              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}
-              <span class="color-gray-50">&#160;—&#160;{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
+              <ul class="list-flat end">
+                <li ng-repeat="file in backup.Files">
+                  <a href="{{ file }}" download>{{ file }}</a>
+                </li>
+              </ul>
             </td>
           </tr>
           <tr ng-show="backup.Output">
@@ -97,4 +93,6 @@
       </table>
     </div>
   </div>
-</div><!-- /app-wrapper
+</div><!-- /app-wrapper -->
+
+<span class="app-loader" data-loading></span><!-- /app-loader -->
