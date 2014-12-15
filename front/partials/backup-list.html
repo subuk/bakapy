@@ -1,0 +1,51 @@
+<div class="app-wrapper">
+
+  <header class="group units-row units-padding end">
+    <div class="unit-60 unit-push-left">
+      <h1 class="end">BAKAPY.<span class="small">backup framework</span></h1>
+    </div>
+
+    <div class="unit-40 unit-push-right">
+      <input ng-model="query" class="width-100" type="text" placeholder="Enter a phrase to search"/>
+    </div>
+  </header><!-- /header -->
+
+  <div class="units-row units-padding">
+    <div class="unit-100">
+      <div class="pause">The total number of items: {{ backups.length }}</div>
+      <table class="table-hovered app-table">
+        <thead>
+          <tr>
+            <th class="app-table-cell"></th>
+            <th class="app-table-cell">JobName</th>
+            <th class="app-table-cell">StartTime</th>
+            <th class="app-table-cell">Size</th>
+            <th class="app-table-cell">Expire</th>
+          </tr>
+        </thead>
+
+        <tbody >
+          <tr ng-repeat="backup in backups | filter: query | orderBy: ['JobName', '-StartTime'] ">
+            <td class="app-table-cell">
+              <span ng-if="backup.Success" class="badge badge-green" title="Success">&#160;&#160;</span>
+              <span ng-if="!backup.Success" class="badge badge-red" title="Failed">&#160;&#160;</span>
+            </td>
+            <td class="app-table-cell">
+              <span class="color-gray-50 small">{{ backup.JobName }}&#160;/</span><br />
+              <a href="#/{{ backup.TaskId }}">{{ backup.TaskId }}</a>
+            </td>
+            <td class="app-table-cell" title="StartTime">
+              {{ backup.StartTime | date:'dd-MM-yyyy' }}<br />
+              <span class="color-gray-50 small">{{ backup.StartTime | date:'HH:mm:ss' }}</span>
+            </td>
+            <td class="app-table-cell" title="TotalSize">{{ backup.TotalSize | bytes}}</td>
+            <td class="app-table-cell" title="ExpireTime">
+              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}<br />
+              <span class="color-gray-50 small">{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /app-wrapper

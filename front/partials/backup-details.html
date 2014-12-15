@@ -1,0 +1,100 @@
+<div class="app-wrapper">
+
+  <header class="group units-row units-padding end">
+    <div class="unit-60 unit-push-left">
+      <a class="h1 end app-h-link" href="#/">BAKAPY.<span class="small">backup framework</span></a>
+    </div>
+
+    <div class="unit-40 unit-push-right">
+      <input ng-model="query" class="width-100" type="text" placeholder="Enter a phrase to search"/>
+    </div>
+  </header><!-- /header -->
+
+
+  <div class="units-row units-padding">
+    <div class="unit-100">
+      <div class="pause lead">
+        <h1 class="h3">
+          <span class="color-gray-50 small light">{{ backup.JobName }}&#160;/</span><br />
+          <span>{{ backup.TaskId }}</span>
+          <span ng-if="backup.Success" class="badge badge-green app-status-middle" title="Success">&#160;&#160;</span>
+          <span ng-if="!backup.Success" class="badge badge-red app-status-middle" title="Failed">&#160;&#160;</span>
+        </h1>
+      </div>
+      <table class="table-hovered app-table">
+        <tbody>
+          <tr>
+            <td class="app-table-cell">Command</td>
+            <td class="app-table-cell">{{ backup.Command }}</td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">AvgSpeed</td>
+            <td class="app-table-cell">{{ backup.AvgSpeed | bytes}}/s</td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">Pid</td>
+            <td class="app-table-cell">{{ backup.Pid }}</td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">StartTime</td>
+            <td class="app-table-cell">
+              {{ backup.StartTime | date:'dd-MM-yyyy' }}
+              <span class="color-gray-50">&#160;—&#160;{{ backup.StartTime | date:'HH:mm:ss' }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">EndTime</td>
+            <td class="app-table-cell">
+              {{ backup.EndTime | date:'dd-MM-yyyy' }}
+              <span class="color-gray-50">&#160;—&#160;{{ backup.EndTime | date:'HH:mm:ss' }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">Duration</td>
+            <td class="app-table-cell nowrap">
+              <span ng-if="backup.Duration >= 60">{{ backup.Duration / 60 | number: 2 }}&#160;m</span>
+              <span ng-if="backup.Duration < 60">{{ backup.Duration | number: 2 }}&#160;s</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">Files</td>
+            <td class="app-table-cell">
+              <ul class="list-flat end">
+                <li ng-repeat="file in backup.Files">
+                  <a href="{{ file }}" download>{{ file }}</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">TotalSize</td>
+            <td class="app-table-cell">{{ backup.TotalSize | bytes }}</td>
+          </tr>
+          <tr>
+            <td class="app-table-cell">ExpireTime</td>
+            <td class="app-table-cell">
+              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}
+              <span class="color-gray-50">&#160;—&#160;{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
+            </td>
+          </tr>
+          <tr ng-show="backup.Output">
+            <td class="app-table-cell">Output</td>
+            <td class="app-table-cell">
+              <code>
+                <pre>{{ backup.Output }}</pre>
+              </code>
+            </td>
+          </tr>
+          <tr ng-show="backup.Errput">
+            <td class="app-table-cell">Errput</td>
+            <td class="app-table-cell">
+              <code>
+                <pre>{{ backup.Errput }}</pre>
+              </code>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /app-wrapper
