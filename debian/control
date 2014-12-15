@@ -9,3 +9,8 @@ Package: bakapy
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Bakapy backup framework
+
+Package: bakapy-front
+Architecture: all
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Bakapy framework web interface

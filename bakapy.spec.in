@@ -12,6 +12,12 @@ Requires(pre): /usr/sbin/useradd /usr/sbin/groupadd /usr/bin/getent
 %description
 Bakapy backup framework
 
+%package front
+Summary: Bakapy web interface
+
+%description front
+Bakapy web interface files
+
 %prep
 %setup -q
 
@@ -24,6 +30,7 @@ install -m 755 -d %{buildroot}/etc
 install -m 755 -d %{buildroot}/etc/init
 install -m 755 -d %{buildroot}/etc/bakapy
 install -m 755 -d %{buildroot}/etc/bakapy/jobs
+install -m 755 -d %{buildroot}/usr/share/bakapy
 install -m 750 -d %{buildroot}/var/lib/bakapy
 install -m 750 -d %{buildroot}/var/lib/bakapy/data
 install -m 750 -d %{buildroot}/var/lib/bakapy/meta
@@ -32,6 +39,8 @@ cp -r bin/ %{buildroot}/usr/
 cp -r commands/ %{buildroot}/etc/bakapy/
 cp -f debian/bakapy.upstart %{buildroot}/etc/init/bakapy.conf
 cp -f bakapy.conf %{buildroot}/etc/bakapy/bakapy.conf
+cp -r front/ %{buildroot}/usr/share/bakapy/
+ln -s /usr/share/bakapy/front/scripts/config.js %{buildroot}/etc/bakapy/front-config.js
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -56,6 +65,11 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 %doc LICENSE
 %doc bakapy.conf.ex.yaml
 %doc jobs.conf.ex.yaml
+
+%files front
+/usr/share/bakapy/front
+%config(noreplace) /etc/bakapy/front-config.js
+%doc front.nginx-vhost.conf.ex
 
 
 %changelog
