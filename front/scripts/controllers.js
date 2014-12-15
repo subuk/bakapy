@@ -6,7 +6,7 @@ var bakapyControllers = angular.module('bakapyControllers', []);
 
 bakapyControllers.controller('BackupListCtrl', ['$scope', '$http',
   function($scope, $http) {
-    $http.get('/metadata').success(function(data) {
+    $http.get(CONFIG.METADATA_URL).success(function(data) {
       $scope.backups = [];
 
       var links = jQuery(data).find('a'),
@@ -18,7 +18,7 @@ bakapyControllers.controller('BackupListCtrl', ['$scope', '$http',
       for (i = 0, j = links.length; i < j; i++) {
         href = links.eq(i).attr('href');
         if (expr.test(href)) {
-          $http.get('/metadata/'+ href, {'responseType': 'json'}).success(function(item) {
+          $http.get(CONFIG.METADATA_URL + '/' + href, {'responseType': 'json'}).success(function(item) {
             $scope.backups.push(item);
           });
         }
@@ -28,7 +28,7 @@ bakapyControllers.controller('BackupListCtrl', ['$scope', '$http',
 
 bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routeParams', 'base64', 'CONFIG', '$location',
   function($scope, $http, $routeParams, base64, CONFIG, $location) {
-    $http.get('/metadata/'+ $routeParams.id, {'responseType': 'json'}).success(function(data) {
+    $http.get(CONFIG.METADATA_URL + '/' + $routeParams.id, {'responseType': 'json'}).success(function(data) {
       var Duration = 0,
           AvgSpeed = 0,
           fileList = [],
