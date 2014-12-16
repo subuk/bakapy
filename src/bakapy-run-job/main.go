@@ -34,10 +34,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	job := bakapy.NewJob(
-		jobName, jobConfig,
-		config, storage,
-	)
 	storage.Start()
-	bakapy.RunJob(job, config)
+	bakapy.RunJob(jobName, jobConfig, config, storage)
 }
