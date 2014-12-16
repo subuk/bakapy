@@ -43,21 +43,21 @@ func NewStorageConn(stor *Storage, conn RemoteReader, logger *logging.Logger) *S
 	}
 }
 
-func (conn *StorageConn) Read(p []byte) (n int, err error) {
-	return conn.conn.Read(p)
+func (sc *StorageConn) Read(p []byte) (n int, err error) {
+	return sc.conn.Read(p)
 }
 
-func (conn *StorageConn) ReadTaskId() error {
-	if conn.state != STATE_WAIT_TASK_ID {
-		msg := fmt.Sprintf("protocol error - cannot read task id in state %d", conn.state)
+func (sc *StorageConn) ReadTaskId() error {
+	if sc.state != STATE_WAIT_TASK_ID {
+		msg := fmt.Sprintf("protocol error - cannot read task id in state %d", sc.state)
 		return errors.New(msg)
 	}
 
 	taskId := make([]byte, STORAGE_TASK_ID_LEN)
 
-	conn.logger.Debug("reading task id")
-	readed, err := io.ReadFull(conn, taskId)
-	conn.logger.Debug("readed %d bytes", readed)
+	sc.logger.Debug("reading task id")
+	readed, err := io.ReadFull(sc, taskId)
+	sc.logger.Debug("readed %d bytes", readed)
 
 	if err != nil {
 		if err == io.EOF {
@@ -68,35 +68,35 @@ func (conn *StorageConn) ReadTaskId() error {
 		}
 
 	}
-	conn.TaskId = TaskId(taskId)
-	currentJob, jobExist := conn.stor.GetActiveJob(conn.TaskId)
+	sc.TaskId = TaskId(taskId)
+	currentJob, jobExist := sc.stor.GetActiveJob(sc.TaskId)
 	if !jobExist {
 		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
 		return errors.New(msg)
 	}
 
-	conn.logger.Debug("task id '%s' successfully readed.", taskId)
-	conn.currentJob = currentJob
-	conn.state = STATE_WAIT_FILENAME
+	sc.logger.Debug("task id '%s' successfully readed.", taskId)
+	sc.currentJob = currentJob
+	sc.state = STATE_WAIT_FILENAME
 
-	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.conn.RemoteAddr().String(), conn.TaskId)
-	conn.logger = logging.MustGetLogger(loggerName)
+	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", sc.conn.RemoteAddr().String(), sc.TaskId)
+	sc.logger = logging.MustGetLogger(loggerName)
 
 	return nil
 }
 
-func (conn *StorageConn) ReadFilename() error {
-	if conn.state != STATE_WAIT_FILENAME {
-		msg := fmt.Sprintf("protocol error - cannot read filename in state %d", conn.state)
+func (sc *StorageConn) ReadFilename() error {
+	if sc.state != STATE_WAIT_FILENAME {
+		msg := fmt.Sprintf("protocol error - cannot read filename in state %d", sc.state)
 		return errors.New(msg)
 	}
-	conn.logger.Debug("reading filename length")
+	sc.logger.Debug("reading filename length")
 	var rawFilenameLen = make([]byte, STORAGE_FILENAME_LEN_LEN)
-	readed, err := io.ReadFull(conn, rawFilenameLen)
+	readed, err := io.ReadFull(sc, rawFilenameLen)
 	if err != nil {
 		return err
 	}
-	conn.logger.Debug("readed %d bytes: %s", readed, rawFilenameLen)
+	sc.logger.Debug("readed %d bytes: %s", readed, rawFilenameLen)
 
 	filenameLen, err := strconv.ParseInt(string(rawFilenameLen), 10, 64)
 	if err != nil {
@@ -104,33 +104,34 @@ func (conn *StorageConn) ReadFilename() error {
 	}
 
 	var filename = make([]byte, filenameLen)
-	readed, err = io.ReadFull(conn, filename)
+	readed, err = io.ReadFull(sc, filename)
 	if err != nil {
 		return err
 	}
-	conn.logger.Debug("readed %d bytes: %s", readed, filename)
+	sc.logger.Debug("readed %d bytes: %s", readed, filename)
 
-	conn.CurrentFilename = string(filename)
-	conn.state = STATE_WAIT_DATA
+	sc.CurrentFilename = string(filename)
+	sc.state = STATE_WAIT_DATA
 	return nil
 }
 
-func (conn *StorageConn) SaveFile() error {
-	if conn.state != STATE_WAIT_DATA {
-		msg := fmt.Sprintf("protocol error - cannot read data in state %d", conn.state)
+func (sc *StorageConn) SaveFile() error {
+	if sc.state != STATE_WAIT_DATA {
+		msg := fmt.Sprintf("protocol error - cannot read data in state %d", sc.state)
 		return errors.New(msg)
 	}
 
-	if conn.currentJob.Gzip {
-		conn.CurrentFilename += ".gz"
+	if sc.currentJob.Gzip {
+		sc.CurrentFilename += ".gz"
 	}
 
 	savePath := path.Join(
-		conn.stor.RootDir,
-		conn.currentJob.Namespace,
-		conn.CurrentFilename,
+		sc.stor.RootDir,
+		sc.currentJob.Namespace,
+		sc.CurrentFilename,
 	)
-	conn.logger.Info("saving file %s", savePath)
+
+	sc.logger.Info("saving file %s", savePath)
 	err := os.MkdirAll(path.Dir(savePath), 0750)
 	if err != nil {
 		return err
@@ -143,7 +144,7 @@ func (conn *StorageConn) SaveFile() error {
 
 	var file io.Writer
 	var gzWriter *gzip.Writer
-	if conn.currentJob.Gzip {
+	if sc.currentJob.Gzip {
 		gzWriter = gzip.NewWriter(fd)
 		file = gzWriter
 	} else {
@@ -151,30 +152,30 @@ func (conn *StorageConn) SaveFile() error {
 	}
 
 	fileMeta := JobMetadataFile{
-		Name:       conn.CurrentFilename,
-		SourceAddr: conn.conn.RemoteAddr().String(),
+		Name:       sc.CurrentFilename,
+		SourceAddr: sc.conn.RemoteAddr().String(),
 		StartTime:  time.Now(),
 	}
 
-	conn.state = STATE_RECEIVING
+	sc.state = STATE_RECEIVING
 
 	buff := bufio.NewWriter(file)
-	written, err := io.Copy(buff, conn)
+	written, err := io.Copy(buff, sc)
 	if err != nil {
 		return err
 	}
 	buff.Flush()
-	if conn.currentJob.Gzip {
+	if sc.currentJob.Gzip {
 		gzWriter.Close()
 	}
 	fd.Close()
 
 	fileMeta.Size = written
 	fileMeta.EndTime = time.Now()
-	conn.logger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
-	conn.currentJob.FileAddChan <- fileMeta
+	sc.logger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
+	sc.currentJob.FileAddChan <- fileMeta
 
-	conn.logger.Info("file saved %s", savePath)
-	conn.state = STATE_END
+	sc.logger.Info("file saved %s", savePath)
+	sc.state = STATE_END
 	return nil
 }
