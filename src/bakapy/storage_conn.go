@@ -16,8 +16,13 @@ import (
 
 type StorageConnState uint8
 
+type RemoteReader interface {
+	Read(p []byte) (n int, err error)
+	RemoteAddr() net.Addr
+}
+
 type StorageConn struct {
-	net.Conn
+	conn RemoteReader
 
 	CurrentFilename string
 	BytesReaded     int
@@ -28,14 +33,18 @@ type StorageConn struct {
 	state           StorageConnState
 }
 
-func NewStorageConn(stor *Storage, conn net.Conn, logger *logging.Logger) *StorageConn {
+func NewStorageConn(stor *Storage, conn RemoteReader, logger *logging.Logger) *StorageConn {
 
 	return &StorageConn{
-		Conn:   conn,
+		conn:   conn,
 		stor:   stor,
 		logger: logger,
 		state:  STATE_WAIT_TASK_ID,
 	}
+}
+
+func (conn *StorageConn) Read(p []byte) (n int, err error) {
+	return conn.conn.Read(p)
 }
 
 func (conn *StorageConn) ReadTaskId() error {
@@ -70,7 +79,7 @@ func (conn *StorageConn) ReadTaskId() error {
 	conn.currentJob = currentJob
 	conn.state = STATE_WAIT_FILENAME
 
-	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.RemoteAddr().String(), conn.TaskId)
+	loggerName := fmt.Sprintf("bakapy.storage.conn[%s][%s]", conn.conn.RemoteAddr().String(), conn.TaskId)
 	conn.logger = logging.MustGetLogger(loggerName)
 
 	return nil
@@ -143,7 +152,7 @@ func (conn *StorageConn) SaveFile() error {
 
 	fileMeta := JobMetadataFile{
 		Name:       conn.CurrentFilename,
-		SourceAddr: conn.RemoteAddr().String(),
+		SourceAddr: conn.conn.RemoteAddr().String(),
 		StartTime:  time.Now(),
 	}
 
