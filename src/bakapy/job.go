@@ -31,6 +31,7 @@ func (jctx *JobTemplateContext) ToPort() string {
 
 type Job struct {
 	Name        string
+	TaskId      TaskId
 	StorageAddr string
 	CommandDir  string
 	storage     Jober
@@ -39,9 +40,11 @@ type Job struct {
 }
 
 func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, jober Jober) *Job {
-	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
+	taskId := TaskId(uuid.NewUUID().String())
+	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
 		Name:        name,
+		TaskId:      taskId,
 		StorageAddr: StorageAddr,
 		CommandDir:  commandDir,
 		cfg:         cfg,
@@ -160,12 +163,10 @@ func (job *Job) Run() *JobMetadata {
 		Command:   job.cfg.Command,
 		Config:    job.cfg,
 		StartTime: time.Now(),
-		TaskId:    TaskId(uuid.NewUUID().String()),
+		TaskId:    job.TaskId,
 		Success:   false,
 	}
 	metadata.ExpireTime = metadata.StartTime.Add(job.cfg.MaxAge)
-	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", job.Name, metadata.TaskId)
-	job.logger = logging.MustGetLogger(loggerName)
 	job.logger.Info("starting up")
 
 	script, err := job.GetScript(metadata)
