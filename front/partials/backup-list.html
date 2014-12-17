@@ -1,6 +1,6 @@
 <div class="app-wrapper">
 
-  <header class="group units-row units-padding end">
+  <header class="group units-row units-padding">
     <div class="unit-60">
       <h1 class="end">BAKAPY.<span class="small">backup framework</span></h1>
     </div>
@@ -9,15 +9,10 @@
     </div>
   </header><!-- /header -->
 
-  <div class="units-row units-padding end">
-    <div class="unit-100">
-      Total: {{ backups | keyLength }} groups.
-    </div>
-  </div>
   <div ng-repeat="(key, array) in backups" class="units-row units-padding end">
     <div class="unit-100" ng-if="(group = (array | filter: query)).length">
       <h2 class="h3">{{ key }}</h2>
-      <table class="table-hovered app-table">
+      <table class="app-table">
         <thead>
           <tr>
             <th class="app-table-cell"></th>

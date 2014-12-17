@@ -24,13 +24,3 @@ bakapyFilters.filter('bytes', function() {
     return (bytes / Math.pow(1024, Math.floor(number))).toFixed(precision) + ' ' + units[number];
   };
 });
-
-bakapyFilters.filter('keyLength', function() {
-  return function(input) {
-    if (!angular.isObject(input)) {
-      throw Error('Usage of non-objects with keylength filter!');
-    }
-
-    return Object.keys(input).length;
-  }
-});

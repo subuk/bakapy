@@ -57,8 +57,5 @@ bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routePara
       }
 
       $scope.backup = data;
-    })
-    .error(function(data) {
-      // $location.path('/404');
     });
   }]);
