@@ -77,7 +77,7 @@ func (job *Job) getScript() ([]byte, error) {
 	return script.Bytes(), nil
 }
 
-func (job *Job) GetCmd() (*exec.Cmd, error) {
+func (job *Job) getCmd() (*exec.Cmd, error) {
 	var remoteCmd string
 	env := make([]string, len(job.cfg.Args))
 	for argName, argValue := range job.cfg.Args {
@@ -128,7 +128,7 @@ func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buff
 	output = new(bytes.Buffer)
 	errput = new(bytes.Buffer)
 
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		return output, errput, err
 	}

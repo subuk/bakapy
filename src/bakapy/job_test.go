@@ -14,7 +14,7 @@ func TestJobGetCmdLocal(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -34,7 +34,7 @@ func TestJobGetCmdLocalSudo(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -55,7 +55,7 @@ func TestJobGetCmdRemote(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -77,7 +77,7 @@ func TestJobGetCmdRemoteSudo(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -97,7 +97,7 @@ func TestJobGetCmdRemoteNoPort(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -114,7 +114,7 @@ func TestJobGetCmdRemoteNoArgs(t *testing.T) {
 	}
 	storage := NewStorage(&Config{})
 	job := NewJob("test-job", *cfg, "", "", storage)
-	cmd, err := job.GetCmd()
+	cmd, err := job.getCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
