@@ -48,7 +48,7 @@ example:
   #
   # Gzip on storage
   #
-  gzip: true
+  gzip: false
 
   #
   # Additional environment variables
