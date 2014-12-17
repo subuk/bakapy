@@ -12,9 +12,8 @@ func TestJobGetCmdLocal(t *testing.T) {
 			"two":  "xxx",
 		},
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -33,9 +32,8 @@ func TestJobGetCmdLocalSudo(t *testing.T) {
 			"two":  "xxx",
 		},
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -55,9 +53,8 @@ func TestJobGetCmdRemote(t *testing.T) {
 			"two":  "xxx",
 		},
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -78,9 +75,8 @@ func TestJobGetCmdRemoteSudo(t *testing.T) {
 			"two":  "xxx",
 		},
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -99,9 +95,8 @@ func TestJobGetCmdRemoteNoPort(t *testing.T) {
 			"two":  "xxx",
 		},
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -117,9 +112,8 @@ func TestJobGetCmdRemoteNoArgs(t *testing.T) {
 		Host: "test-host.example",
 		Port: 2323,
 	}
-	gcfg := &Config{}
-	storage := NewStorage(gcfg)
-	job := NewJob("test-job", *cfg, gcfg, storage)
+	storage := NewStorage(&Config{})
+	job := NewJob("test-job", *cfg, "", "", storage)
 	cmd, err := job.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)

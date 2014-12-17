@@ -17,35 +17,36 @@ type TaskId string
 
 type JobTemplateContext struct {
 	Meta             *JobMetadata
-	GCfg             *Config
-	JCfg             JobConfig
+	Job              *Job
 	FILENAME_LEN_LEN uint
 }
 
 func (jctx *JobTemplateContext) ToHost() string {
-	return strings.Split(jctx.GCfg.Listen, ":")[0]
+	return strings.Split(jctx.Job.StorageAddr, ":")[0]
 }
 
 func (jctx *JobTemplateContext) ToPort() string {
-	return strings.Split(jctx.GCfg.Listen, ":")[1]
+	return strings.Split(jctx.Job.StorageAddr, ":")[1]
 }
 
 type Job struct {
-	Name    string
-	storage *Storage
-	cfg     JobConfig
-	gcfg    *Config
-	logger  *logging.Logger
+	Name        string
+	StorageAddr string
+	CommandDir  string
+	storage     *Storage
+	cfg         JobConfig
+	logger      *logging.Logger
 }
 
-func NewJob(name string, cfg JobConfig, globalConfig *Config, storage *Storage) *Job {
+func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, storage *Storage) *Job {
 	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
 	return &Job{
-		Name:    name,
-		cfg:     cfg,
-		logger:  logging.MustGetLogger(loggerName),
-		storage: storage,
-		gcfg:    globalConfig,
+		Name:        name,
+		StorageAddr: StorageAddr,
+		CommandDir:  commandDir,
+		cfg:         cfg,
+		logger:      logging.MustGetLogger(loggerName),
+		storage:     storage,
 	}
 }
 
@@ -53,15 +54,14 @@ func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
 	script := new(bytes.Buffer)
 	err := JOB_TEMPLATE.Execute(script, &JobTemplateContext{
 		Meta:             metadata,
-		GCfg:             job.gcfg,
-		JCfg:             job.cfg,
+		Job:              job,
 		FILENAME_LEN_LEN: STORAGE_FILENAME_LEN_LEN,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	scriptPath := path.Join(job.gcfg.CommandDir, job.cfg.Command)
+	scriptPath := path.Join(job.CommandDir, job.cfg.Command)
 	job.logger.Debug("reading command file %s", scriptPath)
 	fd, err := os.Open(scriptPath)
 	if err != nil {

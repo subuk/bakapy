@@ -101,8 +101,8 @@ func SendFailedJobNotification(cfg SMTPConfig, meta *JobMetadata) error {
 func RunJob(jobName string, jConfig JobConfig, gConfig *Config, storage *Storage) string {
 	logger := logging.MustGetLogger("bakapy.job")
 	job := NewJob(
-		jobName, jConfig,
-		gConfig, storage,
+		jobName, jConfig, gConfig.Listen,
+		gConfig.CommandDir, storage,
 	)
 	metadata := job.Run()
 	saveTo := path.Join(gConfig.MetadataDir, string(metadata.TaskId))
