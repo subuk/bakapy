@@ -1,6 +1,7 @@
 .app {overflow-y:scroll;}
   .app-wrapper {position:relative;z-index:1;min-width:840px;max-width:1000px;margin:0 auto;}
     .app-h-link {text-decoration:none;}
+    .app-search {position:relative;top:2px;}
     .app-table {}
       .app-table-cell {vertical-align:middle;}
       .app-status-middle {position:relative;top:-2px;vertical-align:middle;}

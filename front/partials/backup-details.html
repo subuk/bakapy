@@ -8,7 +8,7 @@
 
 
   <div class="units-row units-padding">
-    <div class="unit-100">
+    <div class="unit-100" ng-if="backup">
       <div class="pause lead">
         <h1 class="h3">
           <span class="color-gray-50 small light">{{ backup.JobName }}&#160;/</span><br />
@@ -63,12 +63,12 @@
             <td class="app-table-cell">TotalSize</td>
             <td class="app-table-cell">{{ backup.TotalSize | bytes }}</td>
           </tr>
-          <tr>
+          <tr ng-show="backup.Files.length">
             <td class="app-table-cell">Files</td>
             <td class="app-table-cell">
               <ul class="list-flat end">
                 <li ng-repeat="file in backup.Files">
-                  <a href="{{ file }}" download>{{ file }}</a>
+                  <a href="{{ file.source }}" download>{{ file.source }}</a>&#160;<span class="color-gray-30 smaller">{{ file.size | bytes }}</span>
                 </li>
               </ul>
             </td>
@@ -92,6 +92,8 @@
         </tbody>
       </table>
     </div>
+
+    <div class="unit-100" ng-include="'partials/not-found.html'" ng-if="!backup"></div>
   </div>
 </div><!-- /app-wrapper -->
 

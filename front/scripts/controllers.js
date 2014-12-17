@@ -38,7 +38,10 @@ bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routePara
 
       if (data.Files) {
         for (i = 0, j = data.Files.length; i < j; i++) {
-          fileList.push(encodeURI(CONFIG.STORAGE_URL + '/' + data.Namespace + '/' + data.Files[i].Name));
+          fileList.push({
+            'source': (encodeURI(CONFIG.STORAGE_URL + '/' + data.Namespace + '/' + data.Files[i].Name)),
+            'size': data.Files[i].Size
+          });
         }
         data.Files = fileList;
       }
@@ -54,5 +57,8 @@ bakapyControllers.controller('BackupDetailCtrl', ['$scope', '$http', '$routePara
       }
 
       $scope.backup = data;
+    })
+    .error(function(data) {
+      // $location.path('/404');
     });
   }]);

@@ -19,18 +19,21 @@ bakapyApp.constant( 'CONFIG', CONFIG);
 /* CONFIG */
 bakapyApp.config(['$routeProvider',
   function($routeProvider, $locationProvider) {
-    $routeProvider.
-      when('/', {
+    $routeProvider
+      .when('/', {
         templateUrl: '/partials/backup-list.html',
         controller: 'BackupListCtrl',
         reloadOnSearch: false
-      }).
-      when('/:id', {
+      })
+      .when('/404', {
+        templateUrl: '/404.html'
+      })
+      .when('/:id', {
         templateUrl: '/partials/backup-details.html',
         controller: 'BackupDetailCtrl'
-      }).
-      otherwise({
-        redirectTo: '/'
+      })
+      .otherwise({
+        redirectTo: '/404'
       });
   }
 ]);
