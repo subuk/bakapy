@@ -104,7 +104,7 @@ func (job *Job) Run() *JobMetadata {
 
 	job.storage.AddJob(&StorageCurrentJob{
 		Gzip:        job.cfg.Gzip,
-		TaskId:      metadata.TaskId,
+		TaskId:      job.TaskId,
 		Namespace:   job.cfg.Namespace,
 		FileAddChan: fileAddChan,
 	})
@@ -122,7 +122,7 @@ func (job *Job) Run() *JobMetadata {
 	errput := new(bytes.Buffer)
 	err = job.executor.Execute(script, output, errput)
 
-	job.storage.RemoveJob(metadata.TaskId)
+	job.storage.RemoveJob(job.TaskId)
 
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
@@ -142,7 +142,7 @@ func (job *Job) Run() *JobMetadata {
 	metadata.EndTime = time.Now()
 
 	job.logger.Debug("waiting storage")
-	job.storage.WaitJob(metadata.TaskId)
+	job.storage.WaitJob(job.TaskId)
 	close(fileAddChan)
 	return metadata
 }
