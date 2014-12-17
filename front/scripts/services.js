@@ -15,16 +15,20 @@ bakapyServices.factory('Backups', ['$http', function($http) {
 
     for (i = 0, j = links.length; i < j; i++) {
       href = links.eq(i).attr('href');
-      $http.get(CONFIG.METADATA_URL + '/' + href, {'responseType': 'json'}).success(function(item) {
-        if (item && item.JobName !== 'undefined') {
-          if (typeof backups[item.JobName] === 'undefined') {
-            backups[item.JobName] = [];
-          }
 
-          item._source = href;
-          backups[item.JobName].push(item);
-        }
-      });
+      (function(_href) {
+        $http.get(CONFIG.METADATA_URL + '/' + _href, {'responseType': 'json'}).success(function(item, status, headers, config) {
+          if (item && item.JobName !== 'undefined') {
+            if (typeof backups[item.JobName] === 'undefined') {
+              backups[item.JobName] = [];
+            }
+
+            item._source = _href;
+            backups[item.JobName].push(item);
+          }
+        });
+      })(href);
+
     }
   });
 
