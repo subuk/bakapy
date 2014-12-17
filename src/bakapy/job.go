@@ -33,12 +33,12 @@ type Job struct {
 	Name        string
 	StorageAddr string
 	CommandDir  string
-	storage     *Storage
+	storage     Jober
 	cfg         JobConfig
 	logger      *logging.Logger
 }
 
-func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, storage *Storage) *Job {
+func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, jober Jober) *Job {
 	loggerName := fmt.Sprintf("bakapy.job[%s][not-started]", name)
 	return &Job{
 		Name:        name,
@@ -46,7 +46,7 @@ func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, s
 		CommandDir:  commandDir,
 		cfg:         cfg,
 		logger:      logging.MustGetLogger(loggerName),
-		storage:     storage,
+		storage:     jober,
 	}
 }
 

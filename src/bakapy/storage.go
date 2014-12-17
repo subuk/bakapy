@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+type Jober interface {
+	AddJob(currentJob *StorageCurrentJob)
+	RemoveJob(id TaskId)
+	WaitJob(taskId TaskId)
+}
+
 type StorageCurrentJob struct {
 	TaskId      TaskId
 	FileAddChan chan JobMetadataFile
