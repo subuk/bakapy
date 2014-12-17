@@ -1,19 +1,18 @@
 <div class="app-wrapper">
 
-  <header class="group units-row units-padding end">
-    <div class="unit-60 unit-push-left">
+  <header class="group units-row units-padding">
+    <div class="unit-60">
       <h1 class="end">BAKAPY.<span class="small">backup framework</span></h1>
     </div>
-
-    <div class="unit-40 unit-push-right">
-      <input ng-model="query" class="width-100" type="text" placeholder="Enter a phrase to search"/>
+    <div class="unit-40">
+      <input ng-model="query" ng-change="changeUriQuery(query)" class="width-100 app-search" type="text" placeholder="Enter a phrase to search"/>
     </div>
   </header><!-- /header -->
 
-  <div class="units-row units-padding">
-    <div class="unit-100">
-      <div class="pause">The total number of items: {{ backups.length }}</div>
-      <table class="table-hovered app-table">
+  <div ng-repeat="(key, array) in backups" class="units-row units-padding end">
+    <div class="unit-100" ng-if="(group = (array | filter: query)).length">
+      <h2 class="h3">{{ key }}</h2>
+      <table class="app-table">
         <thead>
           <tr>
             <th class="app-table-cell"></th>
@@ -24,15 +23,15 @@
           </tr>
         </thead>
 
-        <tbody >
-          <tr ng-repeat="backup in backups | filter: query | orderBy: ['JobName', '-StartTime'] ">
-            <td class="app-table-cell">
+        <tbody>
+          <tr ng-repeat="backup in group | orderBy: ['JobName', '-StartTime']" class="app-table-line">
+            <td>
               <span ng-if="backup.Success" class="badge badge-green" title="Success">&#160;&#160;</span>
               <span ng-if="!backup.Success" class="badge badge-red" title="Failed">&#160;&#160;</span>
             </td>
             <td class="app-table-cell">
               <span class="color-gray-50 small">{{ backup.JobName }}&#160;/</span><br />
-              <a href="#/{{ backup.TaskId }}">{{ backup.TaskId }}</a>
+              <a href="#/{{ backup._source }}">{{ backup.TaskId }}</a>
             </td>
             <td class="app-table-cell" title="StartTime">
               {{ backup.StartTime | date:'dd-MM-yyyy' }}<br />
@@ -48,4 +47,6 @@
       </table>
     </div>
   </div>
-</div><!-- /app-wrapper
+</div><!-- /app-wrapper -->
+
+<span class="app-loader" data-loading></span><!-- /app-loader -->

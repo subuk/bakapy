@@ -13,22 +13,21 @@
 </head>
 <body class="app">
 
-  <div ng-view></div>
+  <div class="app-wrapper">
+
+    <header class="group units-row units-padding end">
+      <div class="unit-60 unit-push-left">
+        <a class="h1 end app-h-link" href="#/">BAKAPY.<span class="small">backup framework</span></a>
+      </div>
+    </header><!-- /header -->
+
+    <div class="units-row units-padding">
+      <div class="unit-100" ng-include="'partials/not-found.html'"></div>
+    </div>
+  </div>
 
   <span class="app-bg">
     <img class="app-bg__img" src="/static/bakapy-arctic-fox.jpg" alt="" />
   </span><!-- /app-bg -->
-
-  <script src="/scripts/jquery.min.js"></script>
-  <script src="/scripts/kube.min.js"></script>
-  <script src="/scripts/config.js"></script>
-  <script src="/scripts/angular.min.js"></script>
-  <script src="/scripts/angular-route.min.js"></script>
-  <script src="/scripts/angular-utf8-base64.min.js"></script>
-  <script src="/scripts/app.js"></script>
-  <script src="/scripts/controllers.js"></script>
-  <script src="/scripts/filters.js"></script>
-  <script src="/scripts/directives.js"></script>
-  <script src="/scripts/services.js"></script>
 </body>
 </html>
