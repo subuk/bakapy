@@ -52,7 +52,7 @@ func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, j
 	}
 }
 
-func (job *Job) GetScript() ([]byte, error) {
+func (job *Job) getScript() ([]byte, error) {
 	script := new(bytes.Buffer)
 	err := JOB_TEMPLATE.Execute(script, &JobTemplateContext{
 		Job:              job,
@@ -167,7 +167,7 @@ func (job *Job) Run() *JobMetadata {
 	metadata.ExpireTime = metadata.StartTime.Add(job.cfg.MaxAge)
 	job.logger.Info("starting up")
 
-	script, err := job.GetScript()
+	script, err := job.getScript()
 	metadata.Script = script
 	if err != nil {
 		job.logger.Warning("cannot get job script: %s", err.Error())
