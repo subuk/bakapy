@@ -16,7 +16,6 @@ import (
 type TaskId string
 
 type JobTemplateContext struct {
-	Meta             *JobMetadata
 	Job              *Job
 	FILENAME_LEN_LEN uint
 }
@@ -53,10 +52,9 @@ func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, j
 	}
 }
 
-func (job *Job) GetScript(metadata *JobMetadata) ([]byte, error) {
+func (job *Job) GetScript() ([]byte, error) {
 	script := new(bytes.Buffer)
 	err := JOB_TEMPLATE.Execute(script, &JobTemplateContext{
-		Meta:             metadata,
 		Job:              job,
 		FILENAME_LEN_LEN: STORAGE_FILENAME_LEN_LEN,
 	})
@@ -169,7 +167,7 @@ func (job *Job) Run() *JobMetadata {
 	metadata.ExpireTime = metadata.StartTime.Add(job.cfg.MaxAge)
 	job.logger.Info("starting up")
 
-	script, err := job.GetScript(metadata)
+	script, err := job.GetScript()
 	metadata.Script = script
 	if err != nil {
 		job.logger.Warning("cannot get job script: %s", err.Error())
