@@ -17,7 +17,7 @@ type Config struct {
 	MetadataDir string     `yaml:"metadata_dir"`
 	CommandDir  string     `yaml:"command_dir"`
 	SMTP        SMTPConfig `yaml:"smtp"`
-	Jobs        map[string]JobConfig
+	Jobs        map[string]*JobConfig
 }
 
 type SMTPConfig struct {
@@ -70,7 +70,9 @@ type JobConfig struct {
 
 func (jobConfig *JobConfig) Sanitize() error {
 	if jobConfig.MaxAgeDays != 0 && jobConfig.MaxAge != 0 {
-		return errors.New("both max_age and max_age_days defined")
+		e := fmt.Sprintf("both max_age and max_age_days defined. max_age='%s' max_age_days='%d'",
+			jobConfig.MaxAge, jobConfig.MaxAgeDays)
+		return errors.New(e)
 	}
 	if jobConfig.MaxAgeDays != 0 {
 		jobConfig.MaxAge = time.Duration(jobConfig.MaxAgeDays) * time.Hour * 24
@@ -80,7 +82,7 @@ func (jobConfig *JobConfig) Sanitize() error {
 
 func NewConfig() *Config {
 	jobs := Config{
-		Jobs: map[string]JobConfig{},
+		Jobs: map[string]*JobConfig{},
 	}
 	return &jobs
 }
@@ -112,7 +114,7 @@ func ParseConfig(configPath string) (*Config, error) {
 			if err != nil {
 				return nil, err
 			}
-			jobs := map[string]JobConfig{}
+			jobs := map[string]*JobConfig{}
 			err = yaml.Unmarshal(raw, &jobs)
 			if err != nil {
 				return nil, err
@@ -133,9 +135,8 @@ func ParseConfig(configPath string) (*Config, error) {
 	for jobName, jobConfig := range cfg.Jobs {
 		err := jobConfig.Sanitize()
 		if err != nil {
-			return nil, errors.New("job " + jobName + err.Error())
+			return nil, errors.New("job " + jobName + ": " + err.Error())
 		}
-		cfg.Jobs[jobName] = jobConfig
 	}
 
 	return cfg, nil

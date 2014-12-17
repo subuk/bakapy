@@ -33,11 +33,11 @@ type Job struct {
 	CommandDir  string
 	storage     Jober
 	executor    Executer
-	cfg         JobConfig
+	cfg         *JobConfig
 	logger      *logging.Logger
 }
 
-func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer) *Job {
+func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer) *Job {
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
@@ -84,7 +84,7 @@ func (job *Job) Run() *JobMetadata {
 		Namespace: job.cfg.Namespace,
 		Pid:       os.Getpid(),
 		Command:   job.cfg.Command,
-		Config:    job.cfg,
+		Config:    *job.cfg,
 		StartTime: time.Now(),
 		TaskId:    job.TaskId,
 		Success:   false,

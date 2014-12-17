@@ -98,7 +98,7 @@ func SendFailedJobNotification(cfg SMTPConfig, meta *JobMetadata) error {
 	return nil
 }
 
-func RunJob(jobName string, jConfig JobConfig, gConfig *Config, storage *Storage) string {
+func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storage) string {
 	logger := logging.MustGetLogger("bakapy.job")
 	executor := NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo)
 	job := NewJob(
