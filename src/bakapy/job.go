@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"os"
-	"os/exec"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -34,11 +32,12 @@ type Job struct {
 	StorageAddr string
 	CommandDir  string
 	storage     Jober
+	executor    Executer
 	cfg         JobConfig
 	logger      *logging.Logger
 }
 
-func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, jober Jober) *Job {
+func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer) *Job {
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
@@ -47,6 +46,7 @@ func NewJob(name string, cfg JobConfig, StorageAddr string, commandDir string, j
 		StorageAddr: StorageAddr,
 		CommandDir:  commandDir,
 		cfg:         cfg,
+		executor:    executor,
 		logger:      logging.MustGetLogger(loggerName),
 		storage:     jober,
 	}
@@ -75,81 +75,6 @@ func (job *Job) getScript() ([]byte, error) {
 		return nil, err
 	}
 	return script.Bytes(), nil
-}
-
-func (job *Job) getCmd() (*exec.Cmd, error) {
-	var remoteCmd string
-	env := make([]string, len(job.cfg.Args))
-	for argName, argValue := range job.cfg.Args {
-		arg := fmt.Sprintf("%s='%s'", strings.ToUpper(argName), argValue)
-		env = append(env, arg)
-	}
-
-	if job.cfg.Port == 0 {
-		job.cfg.Port = 22
-	}
-
-	if job.cfg.Sudo {
-		remoteCmd = fmt.Sprintf("sudo %s /bin/bash", strings.Join(env, " "))
-	} else {
-		remoteCmd = fmt.Sprintf("%s /bin/bash", strings.Join(env, " "))
-	}
-
-	var args []string
-
-	if job.cfg.Host != "" {
-		args = []string{
-			"ssh", job.cfg.Host,
-			"-oBatchMode=yes",
-			"-p", strconv.FormatInt(int64(job.cfg.Port), 10),
-			remoteCmd,
-		}
-	} else {
-		args = []string{
-			"bash", "-c",
-			remoteCmd,
-		}
-	}
-
-	cmdPath, err := exec.LookPath(args[0])
-	if err != nil {
-		return nil, err
-	}
-	args[0] = cmdPath
-
-	cmd := &exec.Cmd{
-		Path: cmdPath,
-		Args: args,
-	}
-	return cmd, nil
-}
-
-func (job *Job) execute(script []byte) (output *bytes.Buffer, errput *bytes.Buffer, err error) {
-	output = new(bytes.Buffer)
-	errput = new(bytes.Buffer)
-
-	cmd, err := job.getCmd()
-	if err != nil {
-		return output, errput, err
-	}
-
-	cmd.Stderr = errput
-	cmd.Stdout = output
-	cmd.Stdin = bytes.NewReader(script)
-
-	job.logger.Debug(string(script))
-	job.logger.Debug("executing command '%s'",
-		strings.Join(cmd.Args, " "))
-
-	err = cmd.Start()
-	if err != nil {
-		return output, errput, err
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return output, errput, err
-	}
-	return output, errput, nil
 }
 
 func (job *Job) Run() *JobMetadata {
@@ -193,7 +118,10 @@ func (job *Job) Run() *JobMetadata {
 		job.logger.Debug("filemeta updater stopped")
 	}()
 
-	output, errput, err := job.execute(metadata.Script)
+	output := new(bytes.Buffer)
+	errput := new(bytes.Buffer)
+	err = job.executor.Execute(script, output, errput)
+
 	job.storage.RemoveJob(metadata.TaskId)
 
 	job.logger.Debug("Command output: %s", output.String())
