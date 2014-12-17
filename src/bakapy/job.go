@@ -218,7 +218,3 @@ func (job *Job) Run() *JobMetadata {
 	close(fileAddChan)
 	return metadata
 }
-
-func (job *Job) IsDisabled() bool {
-	return job.cfg.Disabled
-}
