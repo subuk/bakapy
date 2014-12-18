@@ -69,7 +69,7 @@ func (sc *StorageConn) ReadTaskId() error {
 
 	}
 	sc.TaskId = TaskId(taskId)
-	currentJob, jobExist := sc.stor.GetActiveJob(sc.TaskId)
+	currentJob, jobExist := sc.stor.GetJob(sc.TaskId)
 	if !jobExist {
 		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
 		return errors.New(msg)

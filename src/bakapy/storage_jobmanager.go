@@ -3,6 +3,7 @@ package bakapy
 import (
 	"github.com/op/go-logging"
 	"sync"
+	"time"
 )
 
 type getJobRequest struct {
@@ -85,4 +86,14 @@ func (m *StorageJobManager) GetJob(id TaskId) (StorageCurrentJob, bool) {
 	defer m.jobMu.RUnlock()
 	job, exist := m.currentJobs[id]
 	return job, exist
+}
+
+func (m *StorageJobManager) WaitJob(taskId TaskId) {
+	for {
+		_, jobExist := m.GetJob(taskId)
+		if !jobExist && m.JobConnectionCount(taskId) <= 0 {
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
 }

@@ -24,24 +24,24 @@ type StorageCurrentJob struct {
 }
 
 type Storage struct {
+	*StorageJobManager
 	RootDir     string
 	MetadataDir string
 	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
-	jobManager  *StorageJobManager
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
 
 func NewStorage(cfg *Config) *Storage {
 	return &Storage{
-		MetadataDir: cfg.MetadataDir,
-		RootDir:     cfg.StorageDir,
-		currentJobs: make(map[TaskId]StorageCurrentJob),
-		connections: make(chan *StorageConn),
-		jobManager:  NewStorageJobManager(),
-		listenAddr:  cfg.Listen,
-		logger:      logging.MustGetLogger("bakapy.storage"),
+		StorageJobManager: NewStorageJobManager(),
+		MetadataDir:       cfg.MetadataDir,
+		RootDir:           cfg.StorageDir,
+		currentJobs:       make(map[TaskId]StorageCurrentJob),
+		connections:       make(chan *StorageConn),
+		listenAddr:        cfg.Listen,
+		logger:            logging.MustGetLogger("bakapy.storage"),
 	}
 }
 
@@ -126,14 +126,6 @@ func (stor *Storage) Listen() net.Listener {
 	return ln
 }
 
-func (stor *Storage) AddJob(currentJob *StorageCurrentJob) {
-	stor.jobManager.AddJob(currentJob)
-}
-
-func (stor *Storage) RemoveJob(id TaskId) {
-	stor.jobManager.RemoveJob(id)
-}
-
 func (stor *Storage) Serve(ln net.Listener) {
 	for {
 		go stor.handleConnection(<-stor.connections)
@@ -149,9 +141,9 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		return
 	}
 
-	stor.jobManager.AddConnection(conn.TaskId)
+	stor.AddConnection(conn.TaskId)
 	defer func() {
-		stor.jobManager.RemoveConnection(conn.TaskId)
+		stor.RemoveConnection(conn.TaskId)
 	}()
 
 	if err = conn.ReadFilename(); err != nil {
@@ -169,18 +161,4 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		return
 	}
 	return
-}
-
-func (stor *Storage) GetActiveJob(taskId TaskId) (StorageCurrentJob, bool) {
-	return stor.jobManager.GetJob(taskId)
-}
-
-func (stor *Storage) WaitJob(taskId TaskId) {
-	for {
-		_, jobExist := stor.jobManager.GetJob(taskId)
-		if !jobExist && stor.jobManager.JobConnectionCount(taskId) <= 0 {
-			return
-		}
-		time.Sleep(time.Millisecond * 100)
-	}
 }
