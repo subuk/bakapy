@@ -11,8 +11,8 @@ RUN apt-get update
 
 RUN apt-get install -y wget dpkg-dev cdbs ssh
 RUN mkdir -p /var/run/sshd
-RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.3.2.linux-amd64.tar.gz
-RUN tar -xf go1.3.2.linux-amd64.tar.gz
+RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.4.linux-amd64.tar.gz
+RUN tar -xf go1.4.linux-amd64.tar.gz
 
 ADD . /home/builder/bakapy-source
 

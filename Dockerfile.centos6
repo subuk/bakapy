@@ -3,8 +3,8 @@ FROM centos:centos6
 RUN rpm -ivh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 RUN yum install -y rpmdevtools wget tar gzip git
 
-RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.3.2.linux-amd64.tar.gz
-RUN tar -xf go1.3.2.linux-amd64.tar.gz
+RUN wget --no-check-certificate https://storage.googleapis.com/golang/go1.4.linux-amd64.tar.gz
+RUN tar -xf go1.4.linux-amd64.tar.gz
 
 ADD . /bakapy-source
 
