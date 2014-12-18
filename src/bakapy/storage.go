@@ -1,8 +1,11 @@
 package bakapy
 
 import (
+	"bufio"
+	"compress/gzip"
 	"fmt"
 	"github.com/op/go-logging"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -56,58 +59,109 @@ func (stor *Storage) Listen() net.Listener {
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				stor.logger.Error("Error during accept() call: %v", err)
-				return
-			}
-			stor.logger.Debug("new connection from %s", conn.RemoteAddr().String())
-
-			loggerName := fmt.Sprintf("bakapy.storage.conn[%s]", conn.RemoteAddr().String())
-			logger := logging.MustGetLogger(loggerName)
-			stor.connections <- NewStorageConn(stor, conn, logger)
-		}
-
-	}()
 	return ln
 }
 
 func (stor *Storage) Serve(ln net.Listener) {
 	for {
-		go stor.handleConnection(<-stor.connections)
+		conn, err := ln.Accept()
+		if err != nil {
+			stor.logger.Error("Error during accept() call: %v", err)
+			return
+		}
+		stor.logger.Debug("new connection from %s", conn.RemoteAddr().String())
+
+		loggerName := fmt.Sprintf("bakapy.storage.conn[%s]", conn.RemoteAddr().String())
+		logger := logging.MustGetLogger(loggerName)
+		go stor.HandleConnection(NewStorageConn(conn, logger))
 	}
 }
 
-func (stor *Storage) handleConnection(conn *StorageConn) {
+func (stor *Storage) HandleConnection(conn StorageProtocolHandler) {
 	var err error
-	defer conn.logger.Debug("connection handled")
+	connLogger := conn.Logger()
+	defer connLogger.Debug("connection handled")
 
-	if err = conn.ReadTaskId(); err != nil {
-		conn.logger.Warning("cannot read task id: %s. closing connection", err)
+	taskId, err := conn.ReadTaskId()
+	if err != nil {
+		connLogger.Warning("cannot read task id: %s. closing connection", err)
+		return
+	}
+	connLogger = conn.Logger()
+	currentJob, exist := stor.GetJob(taskId)
+	if !exist {
+		connLogger.Warning("Cannot find task id '%s' in current job list, closing connection", taskId)
 		return
 	}
 
-	stor.AddConnection(conn.TaskId)
-	defer func() {
-		stor.RemoveConnection(conn.TaskId)
-	}()
+	stor.AddConnection(taskId)
+	defer stor.RemoveConnection(taskId)
 
-	if err = conn.ReadFilename(); err != nil {
-		conn.logger.Warning("cannot read filename: %s. closing connection", err)
+	filename, err := conn.ReadFilename()
+	if err != nil {
+		connLogger.Warning("cannot read filename: %s. closing connection", err)
 		return
 	}
 
-	if conn.CurrentFilename == JOB_FINISH {
-		conn.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
+	if filename == JOB_FINISH {
+		connLogger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
 		return
 	}
 
-	if err = conn.SaveFile(); err != nil {
-		conn.logger.Warning("cannot save file: %s. closing connection", err)
+	fileSavePath := path.Join(
+		stor.RootDir,
+		currentJob.Namespace,
+		filename,
+	)
+
+	if currentJob.Gzip {
+		fileSavePath += ".gz"
+	}
+
+	fileMeta := JobMetadataFile{}
+	fileMeta.Name = filename
+	fileMeta.SourceAddr = conn.RemoteAddr().String()
+	fileMeta.StartTime = time.Now()
+
+	connLogger.Info("saving file %s", fileSavePath)
+	err = os.MkdirAll(path.Dir(fileSavePath), 0750)
+	if err != nil {
+		connLogger.Warning("cannot create file folder: %s", err)
 		return
 	}
+
+	fd, err := os.Create(fileSavePath)
+	if err != nil {
+		connLogger.Warning("cannot open file: %s", err)
+		return
+	}
+
+	var file io.WriteCloser
+	var gzWriter io.WriteCloser
+	if currentJob.Gzip {
+		gzWriter = gzip.NewWriter(fd)
+		file = gzWriter
+	} else {
+		file = fd
+	}
+
+	stream := bufio.NewWriter(file)
+	written, err := conn.ReadContent(stream)
+	if err != nil {
+		connLogger.Warning("cannot save file: %s. closing connection", err)
+		return
+	}
+
+	stream.Flush()
+	if currentJob.Gzip {
+		gzWriter.Close()
+	}
+	fd.Close()
+
+	connLogger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
+	fileMeta.Size = written
+	fileMeta.EndTime = time.Now()
+	currentJob.FileAddChan <- fileMeta
 	return
 }
 
