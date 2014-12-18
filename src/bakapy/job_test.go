@@ -3,7 +3,6 @@ package bakapy
 import (
 	"errors"
 	"io"
-	"runtime"
 	"testing"
 	"time"
 )
@@ -14,9 +13,13 @@ func (j *TestJober) AddJob(currentJob *StorageCurrentJob) {}
 func (j *TestJober) RemoveJob(id TaskId)                  {}
 func (j *TestJober) WaitJob(taskId TaskId)                {}
 
-type TestJoberPushFile struct{ TestJober }
+type TestJoberPushFile struct {
+	TestJober
+	ch chan JobMetadataFile
+}
 
 func (j *TestJoberPushFile) AddJob(currentJob *StorageCurrentJob) {
+	j.ch = currentJob.FileAddChan
 	f1 := JobMetadataFile{
 		Name:       currentJob.Namespace + "/" + "wow.txt",
 		Size:       1234,
@@ -34,6 +37,15 @@ func (j *TestJoberPushFile) AddJob(currentJob *StorageCurrentJob) {
 
 	currentJob.FileAddChan <- f1
 	currentJob.FileAddChan <- f2
+}
+
+func (j *TestJoberPushFile) WaitJob(taskId TaskId) {
+	for {
+		if len(j.ch) == 0 {
+			break
+		}
+		time.Sleep(time.Nanosecond)
+	}
 }
 
 type TestOkExecutor struct{}
@@ -198,7 +210,6 @@ func TestJob_Run_MetadataFilesAdded(t *testing.T) {
 	if !m.Success {
 		t.Fatal("m.Success must be true. Message", m.Message)
 	}
-	runtime.Gosched()
 	if len(m.Files) != 2 {
 		t.Fatal("m.Files length must be 2 not", len(m.Files))
 	}
