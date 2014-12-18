@@ -1,6 +1,6 @@
 language: go
 install: true
-script: ./test.sh
+script: ./test.sh -v
 go:
 - 1.4
 - 1.3
