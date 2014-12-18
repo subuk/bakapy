@@ -93,12 +93,12 @@ func (job *Job) Run() *JobMetadata {
 	job.logger.Info("starting up")
 
 	script, err := job.getScript()
-	metadata.Script = script
 	if err != nil {
 		job.logger.Warning("cannot get job script: %s", err.Error())
 		metadata.Message = err.Error()
 		return metadata
 	}
+	metadata.Script = script
 
 	fileAddChan := make(chan JobMetadataFile, 20)
 
@@ -134,6 +134,7 @@ func (job *Job) Run() *JobMetadata {
 		job.logger.Warning("command failed: %s", err)
 		metadata.Success = false
 		metadata.Message = err.Error()
+		metadata.EndTime = time.Now()
 		return metadata
 	}
 
