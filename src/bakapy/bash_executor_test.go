@@ -9,7 +9,6 @@ import (
 func TestBashExecutor_GetCmd_Local(t *testing.T) {
 	args := map[string]string{
 		"test": "oneone",
-		"two":  "xxx",
 	}
 	host := ""
 	port := uint(22)
@@ -20,8 +19,8 @@ func TestBashExecutor_GetCmd_Local(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
-	if strings.Join(cmd.Args, "|||") != "/bin/bash|||-c|||  TEST='oneone' TWO='xxx' /bin/bash" {
-		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"))
+	if strings.Join(cmd.Args, "|||") != "/bin/bash|||-c||| TEST='oneone' /bin/bash" {
+		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"), "expected '/bin/bash|||-c||| TEST='oneone' /bin/bash'")
 	}
 	t.Log(cmd.Args)
 }
@@ -29,7 +28,6 @@ func TestBashExecutor_GetCmd_Local(t *testing.T) {
 func TestBashExecutor_GetCmd_LocalSudo(t *testing.T) {
 	args := map[string]string{
 		"test": "oneone",
-		"two":  "xxx",
 	}
 	host := ""
 	port := uint(22)
@@ -39,8 +37,9 @@ func TestBashExecutor_GetCmd_LocalSudo(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
-	if strings.Join(cmd.Args, "|||") != "/bin/bash|||-c|||sudo   TEST='oneone' TWO='xxx' /bin/bash" {
-		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"))
+	expected_args := "/bin/bash|||-c|||sudo  TEST='oneone' /bin/bash"
+	if strings.Join(cmd.Args, "|||") != expected_args {
+		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"), "expected", expected_args)
 	}
 	t.Log(cmd.Args)
 }
@@ -48,7 +47,6 @@ func TestBashExecutor_GetCmd_LocalSudo(t *testing.T) {
 func TestBashExecutor_GetCmd_Remote(t *testing.T) {
 	args := map[string]string{
 		"test": "oneone",
-		"two":  "xxx",
 	}
 	host := "test-host.example"
 	port := uint(2424)
@@ -59,8 +57,9 @@ func TestBashExecutor_GetCmd_Remote(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
-	if strings.Join(cmd.Args, "|||") != "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||2424|||  TEST='oneone' TWO='xxx' /bin/bash" {
-		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"))
+	expected_args := "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||2424||| TEST='oneone' /bin/bash"
+	if strings.Join(cmd.Args, "|||") != expected_args {
+		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"), "expected", expected_args)
 	}
 	t.Log(cmd.Args)
 }
@@ -68,7 +67,6 @@ func TestBashExecutor_GetCmd_Remote(t *testing.T) {
 func TestBashExecutor_GetCmd_RemoteSudo(t *testing.T) {
 	args := map[string]string{
 		"test": "oneone",
-		"two":  "xxx",
 	}
 	host := "test-host.example"
 	port := uint(2424)
@@ -79,8 +77,9 @@ func TestBashExecutor_GetCmd_RemoteSudo(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
-	if strings.Join(cmd.Args, "|||") != "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||2424|||sudo   TEST='oneone' TWO='xxx' /bin/bash" {
-		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"))
+	expected_args := "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||2424|||sudo  TEST='oneone' /bin/bash"
+	if strings.Join(cmd.Args, "|||") != expected_args {
+		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"), "expected", expected_args)
 	}
 	t.Log(cmd.Args)
 }
@@ -88,7 +87,6 @@ func TestBashExecutor_GetCmd_RemoteSudo(t *testing.T) {
 func TestBashExecutor_GetCmd_RemoteNoPort(t *testing.T) {
 	args := map[string]string{
 		"test": "oneone",
-		"two":  "xxx",
 	}
 	host := "test-host.example"
 	port := uint(0)
@@ -99,8 +97,9 @@ func TestBashExecutor_GetCmd_RemoteNoPort(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
-	if strings.Join(cmd.Args, "|||") != "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||22|||  TEST='oneone' TWO='xxx' /bin/bash" {
-		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"))
+	expected_args := "/usr/bin/ssh|||test-host.example|||-oBatchMode=yes|||-p|||22||| TEST='oneone' /bin/bash"
+	if strings.Join(cmd.Args, "|||") != expected_args {
+		t.Fatal("Wrong cmd args:", strings.Join(cmd.Args, "|||"), "expected", expected_args)
 	}
 	t.Log(cmd.Args)
 }
