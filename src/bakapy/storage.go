@@ -50,58 +50,6 @@ func (stor *Storage) Start() {
 	go stor.Serve(ln)
 }
 
-func (stor *Storage) CleanupExpired() error {
-	visit := func(metaPath string, f os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if f.IsDir() {
-			return nil
-		}
-
-		metadata, err := LoadJobMetadata(metaPath)
-		if err != nil {
-			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
-			return err
-		}
-		if metadata.ExpireTime.After(time.Now()) {
-			return nil
-		}
-
-		stor.logger.Info("removing files for expired task %s(%s)",
-			metadata.JobName, metadata.TaskId)
-
-		removeErrs := false
-		for _, fileMeta := range metadata.Files {
-			absPath := path.Join(stor.RootDir, metadata.Namespace, fileMeta.Name)
-			stor.logger.Info("removing file %s", absPath)
-			_, err := os.Stat(absPath)
-			if os.IsNotExist(err) {
-				stor.logger.Warning("file %s of job %s does not exist", absPath, metadata.TaskId)
-				continue
-			}
-			err = os.Remove(absPath)
-			if err != nil {
-				removeErrs = true
-				stor.logger.Warning("cannot remove file %s: %s", absPath, err.Error())
-			}
-		}
-		if !removeErrs {
-			stor.logger.Info("removing metadata %s", metaPath)
-		}
-		err = os.Remove(metaPath)
-		if err != nil {
-			stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
-			return err
-		}
-
-		return nil
-	}
-
-	return filepath.Walk(stor.MetadataDir, visit)
-}
-
 func (stor *Storage) Listen() net.Listener {
 	stor.logger.Info("Listening on %s", stor.listenAddr)
 	ln, err := net.Listen("tcp", stor.listenAddr)
@@ -161,4 +109,56 @@ func (stor *Storage) handleConnection(conn *StorageConn) {
 		return
 	}
 	return
+}
+
+func (stor *Storage) CleanupExpired() error {
+	visit := func(metaPath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if f.IsDir() {
+			return nil
+		}
+
+		metadata, err := LoadJobMetadata(metaPath)
+		if err != nil {
+			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
+			return err
+		}
+		if metadata.ExpireTime.After(time.Now()) {
+			return nil
+		}
+
+		stor.logger.Info("removing files for expired task %s(%s)",
+			metadata.JobName, metadata.TaskId)
+
+		removeErrs := false
+		for _, fileMeta := range metadata.Files {
+			absPath := path.Join(stor.RootDir, metadata.Namespace, fileMeta.Name)
+			stor.logger.Info("removing file %s", absPath)
+			_, err := os.Stat(absPath)
+			if os.IsNotExist(err) {
+				stor.logger.Warning("file %s of job %s does not exist", absPath, metadata.TaskId)
+				continue
+			}
+			err = os.Remove(absPath)
+			if err != nil {
+				removeErrs = true
+				stor.logger.Warning("cannot remove file %s: %s", absPath, err.Error())
+			}
+		}
+		if !removeErrs {
+			stor.logger.Info("removing metadata %s", metaPath)
+		}
+		err = os.Remove(metaPath)
+		if err != nil {
+			stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
+			return err
+		}
+
+		return nil
+	}
+
+	return filepath.Walk(stor.MetadataDir, visit)
 }
