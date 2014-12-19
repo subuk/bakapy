@@ -21,7 +21,6 @@ type StorageProtocolHandler interface {
 	ReadFilename() (string, error)
 	ReadContent(output io.Writer) (int64, error)
 	RemoteAddr() net.Addr
-	Logger() *logging.Logger
 }
 
 type StorageConn struct {
@@ -37,10 +36,6 @@ func NewStorageConn(rReader RemoteReader, logger *logging.Logger) *StorageConn {
 		logger:       logger,
 		State:        STATE_WAIT_TASK_ID,
 	}
-}
-
-func (sc *StorageConn) Logger() *logging.Logger {
-	return sc.logger
 }
 
 func (sc *StorageConn) ReadTaskId() (TaskId, error) {
