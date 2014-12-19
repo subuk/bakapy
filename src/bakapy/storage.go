@@ -111,8 +111,8 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 	}
 
 	if filename == JOB_FINISH {
-		msg := fmt.Sprintf("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
-		return errors.New(msg)
+		stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
+		return nil
 	}
 
 	fileSavePath := path.Join(
