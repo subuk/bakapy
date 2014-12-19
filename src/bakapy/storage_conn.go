@@ -54,12 +54,8 @@ func (sc *StorageConn) ReadTaskId() (TaskId, error) {
 	readed, err := io.ReadFull(sc, taskIdBuf)
 	sc.logger.Debug("readed %d bytes", readed)
 	if err != nil {
-		if err == io.EOF {
-			return TaskId(""), errors.New("received EOF on reading task id")
-		} else {
-			msg := fmt.Sprintf("received error on reading task id: %s", err)
-			return TaskId(""), errors.New(msg)
-		}
+		msg := fmt.Sprintf("received error on reading task id: %s", err)
+		return TaskId(""), errors.New(msg)
 	}
 
 	taskId := TaskId(taskIdBuf)
@@ -81,19 +77,22 @@ func (sc *StorageConn) ReadFilename() (string, error) {
 	var rawFilenameLen = make([]byte, STORAGE_FILENAME_LEN_LEN)
 	readed, err := io.ReadFull(sc, rawFilenameLen)
 	if err != nil {
-		return "", err
+		msg := fmt.Sprintf("error while reading filename length: %s", err)
+		return "", errors.New(msg)
 	}
 	sc.logger.Debug("readed %d bytes: %s", readed, rawFilenameLen)
 	filenameLen, err := strconv.ParseInt(string(rawFilenameLen), 10, 64)
 	if err != nil {
-		return "", err
+		msg := fmt.Sprintf("cannot convert readed filename length to integer:%s: %s", rawFilenameLen, err)
+		return "", errors.New(msg)
 	}
 
 	sc.logger.Debug("reading filename with length %d", filenameLen)
 	var filename = make([]byte, filenameLen)
 	readed, err = io.ReadFull(sc, filename)
 	if err != nil {
-		return "", err
+		msg := fmt.Sprintf("cannot read filename: %s", err)
+		return "", errors.New(msg)
 	}
 	sc.logger.Debug("readed %d bytes: %s", readed, filename)
 
@@ -111,7 +110,8 @@ func (sc *StorageConn) ReadContent(output io.Writer) (int64, error) {
 
 	written, err := io.Copy(output, sc)
 	if err != nil {
-		return written, err
+		msg := fmt.Sprintf("read file content error: %s", err)
+		return written, errors.New(msg)
 	}
 
 	sc.logger.Info("readed %d bytes", written)
