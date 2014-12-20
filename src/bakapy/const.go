@@ -48,13 +48,13 @@ var JOB_TEMPLATE = template.Must(template.New("job").Parse(`
 ##
 set -e
 
-TASK_NAME='{{.Meta.JobName}}'
+TASK_NAME='{{.Job.Name}}'
 
 _send_file(){
     local name="$1"
 
     exec 3<>/dev/tcp/{{.ToHost}}/{{.ToPort}}
-    echo -n {{.Meta.TaskId}}$(printf "%0{{.FILENAME_LEN_LEN}}d" ${#name})${name} >&3
+    echo -n {{.Job.TaskId}}$(printf "%0{{.FILENAME_LEN_LEN}}d" ${#name})${name} >&3
     cat - >&3
     exec 3>&-
 }

@@ -37,17 +37,14 @@ func main() {
 	for jobName, jobConfig := range config.Jobs {
 		runSpec := jobConfig.RunAt.SchedulerString()
 		logger.Info("adding job %s{%s} to scheduler", jobName, runSpec)
-		job := bakapy.NewJob(
-			jobName, jobConfig,
-			config, storage,
-		)
-		if job.IsDisabled() {
-			logger.Warning("job %s disabled, skipping", job.Name)
+
+		if jobConfig.Disabled {
+			logger.Warning("job %s disabled, skipping", jobName)
 			continue
 		}
 
 		scheduler.AddFunc(runSpec, func() {
-			bakapy.RunJob(job, config)
+			bakapy.RunJob(jobName, jobConfig, config, storage)
 		})
 	}
 

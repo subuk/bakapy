@@ -98,10 +98,18 @@ func SendFailedJobNotification(cfg SMTPConfig, meta *JobMetadata) error {
 	return nil
 }
 
-func RunJob(job *Job, config *Config) string {
+func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storage) string {
 	logger := logging.MustGetLogger("bakapy.job")
+	executor := jConfig.executor
+	if executor == nil {
+		executor = NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo)
+	}
+	job := NewJob(
+		jobName, jConfig, gConfig.Listen,
+		gConfig.CommandDir, storage, executor,
+	)
 	metadata := job.Run()
-	saveTo := path.Join(config.MetadataDir, string(metadata.TaskId))
+	saveTo := path.Join(gConfig.MetadataDir, string(metadata.TaskId))
 	err := metadata.Save(saveTo)
 	if err != nil {
 		logger.Critical("cannot save metadata: %s", err)
@@ -109,7 +117,7 @@ func RunJob(job *Job, config *Config) string {
 	logger.Info("metadata for job %s successfully saved to %s", metadata.TaskId, saveTo)
 	if !metadata.Success {
 		logger.Debug("sending failed job notification to current user")
-		if err := SendFailedJobNotification(config.SMTP, metadata); err != nil {
+		if err := SendFailedJobNotification(gConfig.SMTP, metadata); err != nil {
 			logger.Critical("cannot send failed job notification: %s", err.Error())
 		}
 
