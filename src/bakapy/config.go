@@ -66,6 +66,7 @@ type JobConfig struct {
 	Command    string
 	Args       map[string]string
 	RunAt      RunAtSpec `yaml:"run_at"`
+	executor   Executer  `yaml:"-"`
 }
 
 func (jobConfig *JobConfig) Sanitize() error {
