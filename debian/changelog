@@ -1,3 +1,11 @@
+bakapy (0.8.0) testing; urgency=medium
+
+  * Added web interface
+  * Add MYSQLDUMP_EXTRA_ARGS option for backup-mysql-databases.sh
+  * Stability improvements
+
+ -- Matvey Kruglov <kubuzzzz@gmail.com>  Sat, 20 Dec 2014 19:09:19 +0300
+
 bakapy (0.7.2) testing; urgency=medium
 
   * Add backup-deb-package-list.sh backup command
