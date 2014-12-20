@@ -20,7 +20,7 @@ func (stor *Storage) CleanupExpired() error {
 		metadata, err := LoadJobMetadata(metaPath)
 		if err != nil {
 			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
-			return err
+			return nil
 		}
 		if metadata.ExpireTime.After(time.Now()) {
 			return nil
@@ -33,11 +33,6 @@ func (stor *Storage) CleanupExpired() error {
 		for _, fileMeta := range metadata.Files {
 			absPath := path.Join(stor.RootDir, metadata.Namespace, fileMeta.Name)
 			stor.logger.Info("removing file %s", absPath)
-			_, err := os.Stat(absPath)
-			if os.IsNotExist(err) {
-				stor.logger.Warning("file %s of job %s does not exist", absPath, metadata.TaskId)
-				continue
-			}
 			err = os.Remove(absPath)
 			if err != nil {
 				removeErrs = true
@@ -46,13 +41,12 @@ func (stor *Storage) CleanupExpired() error {
 		}
 		if !removeErrs {
 			stor.logger.Info("removing metadata %s", metaPath)
+			err = os.Remove(metaPath)
+			if err != nil {
+				stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
+				return nil
+			}
 		}
-		err = os.Remove(metaPath)
-		if err != nil {
-			stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
-			return err
-		}
-
 		return nil
 	}
 
