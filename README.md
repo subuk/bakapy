@@ -1,5 +1,6 @@
 Bakapy
 ======
+[![Build Status](https://travis-ci.org/subuk/bakapy.svg?branch=master)](https://travis-ci.org/subuk/bakapy)
 
 Backup framework.
 
