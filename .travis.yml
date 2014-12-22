@@ -4,7 +4,7 @@ install:
 - go get github.com/mattn/goveralls
 script:
 - ./test.sh -v -covermode=count -coverprofile=coverage.out
-- GOPATH="$GOPATH:`pwd`/vendor:`pwd`" $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+- GOPATH="$GOPATH:`pwd`/vendor:`pwd`" $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN || true
 go:
 - '1.4'
 - 'tip'

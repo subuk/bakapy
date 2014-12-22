@@ -8,7 +8,8 @@ var bakapyApp = angular.module('bakapyApp', [
   'bakapyControllers',
   'bakapyFilters',
   'bakapyDirectives',
-  'bakapyServices'
+  'bakapyServices',
+  'pasvaz.bindonce'
 ]);
 
 

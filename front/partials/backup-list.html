@@ -9,9 +9,9 @@
     </div>
   </header><!-- /header -->
 
-  <div ng-repeat="(key, array) in backups" class="units-row units-padding end">
+  <div bindonce ng-repeat="(key, array) in backups" class="units-row units-padding end">
     <div class="unit-100" ng-if="(group = (array | filter: query)).length">
-      <h2 class="h3">{{ key }}</h2>
+      <h2 class="h3" bo-text="key"></h2>
       <table class="app-table">
         <thead>
           <tr>
@@ -24,23 +24,23 @@
         </thead>
 
         <tbody>
-          <tr ng-repeat="backup in group | orderBy: ['JobName', '-StartTime']" class="app-table-line">
+          <tr bindonce ng-repeat="backup in group | orderBy: ['JobName', '-StartTime']" class="app-table-line">
             <td>
-              <span ng-if="backup.Success" class="badge badge-green" title="Success">&#160;&#160;</span>
-              <span ng-if="!backup.Success" class="badge badge-red" title="Failed">&#160;&#160;</span>
+              <span bo-if="backup.Success" class="badge badge-green" title="Success">&#160;&#160;</span>
+              <span bo-if="!backup.Success" class="badge badge-red" title="Failed">&#160;&#160;</span>
             </td>
             <td class="app-table-cell">
-              <span class="color-gray-50 small">{{ backup.JobName }}&#160;/</span><br />
-              <a href="#/{{ backup._source }}">{{ backup.TaskId }}</a>
+              <span class="color-gray-50 small"><span bo-text="backup.JobName"></span>&#160;/</span><br />
+              <a bo-href-i="#/{{ backup._source }}" bo-text="backup.TaskId"></a>
             </td>
             <td class="app-table-cell" title="StartTime">
-              {{ backup.StartTime | date:'dd-MM-yyyy' }}<br />
-              <span class="color-gray-50 small">{{ backup.StartTime | date:'HH:mm:ss' }}</span>
+              <span bo-text="backup.StartTime | date:'dd-MM-yyyy'"></span><br />
+              <span class="color-gray-50 small" bo-text="backup.StartTime | date:'HH:mm:ss'"></span>
             </td>
-            <td class="app-table-cell" title="TotalSize">{{ backup.TotalSize | bytes}}</td>
+            <td class="app-table-cell" title="TotalSize" bo-text="backup.TotalSize | bytes"></td>
             <td class="app-table-cell" title="ExpireTime">
-              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}<br />
-              <span class="color-gray-50 small">{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
+              <span bo-text="backup.ExpireTime | date:'dd-MM-yyyy'"></span><br />
+              <span class="color-gray-50 small" bo-text="backup.ExpireTime | date:'HH:mm:ss'"></span>
             </td>
           </tr>
         </tbody>
