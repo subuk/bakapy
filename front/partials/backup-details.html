@@ -7,85 +7,85 @@
   </header><!-- /header -->
 
 
-  <div class="units-row units-padding">
+  <div bindonce="backup" class="units-row units-padding">
     <div class="unit-100" ng-if="backup">
       <div class="pause lead">
         <h1 class="h3">
-          <span class="color-gray-50 small light">{{ backup.JobName }}&#160;/</span><br />
-          <span>{{ backup.TaskId }}</span>
-          <span ng-if="backup.Success" class="badge badge-green app-status-middle" title="Success">&#160;&#160;</span>
-          <span ng-if="!backup.Success" class="badge badge-red app-status-middle" title="Failed">&#160;&#160;</span>
+          <span class="color-gray-50 small light"><span bo-text="backup.JobName"></span>&#160;/</span><br />
+          <span bo-text="backup.TaskId"></span>
+          <span bo-if="backup.Success" class="badge badge-green app-status-middle" title="Success">&#160;&#160;</span>
+          <span bo-if="!backup.Success" class="badge badge-red app-status-middle" title="Failed">&#160;&#160;</span>
         </h1>
       </div>
       <table class="app-table">
         <tbody>
           <tr class="app-table-line">
             <td class="app-table-cell">Command</td>
-            <td class="app-table-cell">{{ backup.Command }}</td>
+            <td class="app-table-cell" bo-text="backup.Command"></td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">AvgSpeed</td>
-            <td class="app-table-cell">{{ backup.AvgSpeed | bytes}}/s</td>
+            <td class="app-table-cell"><span bo-text="backup.AvgSpeed | bytes"></span>/s</td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">Pid</td>
-            <td class="app-table-cell">{{ backup.Pid }}</td>
+            <td class="app-table-cell" bo-text="backup.Pid"></td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">StartTime</td>
             <td class="app-table-cell">
-              {{ backup.StartTime | date:'dd-MM-yyyy' }}
-              <span class="color-gray-50">&#160;—&#160;{{ backup.StartTime | date:'HH:mm:ss' }}</span>
+              <span bo-text="backup.StartTime | date:'dd-MM-yyyy'"></span>
+              <span class="color-gray-50">&#160;—&#160;<span bo-text="backup.StartTime | date:'HH:mm:ss'"></span></span>
             </td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">EndTime</td>
             <td class="app-table-cell">
-              {{ backup.EndTime | date:'dd-MM-yyyy' }}
-              <span class="color-gray-50">&#160;—&#160;{{ backup.EndTime | date:'HH:mm:ss' }}</span>
+              <span bo-text="backup.EndTime | date:'dd-MM-yyyy'"></span>
+              <span class="color-gray-50">&#160;—&#160;<span bo-text="backup.EndTime | date:'HH:mm:ss'"></span></span>
             </td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">Duration</td>
             <td class="app-table-cell nowrap">
-              <span ng-if="backup.Duration >= 60">{{ backup.Duration / 60 | number: 2 }}&#160;m</span>
-              <span ng-if="backup.Duration < 60">{{ backup.Duration | number: 2 }}&#160;s</span>
+              <span bo-if="backup.Duration >= 60"><span bo-text="backup.Duration / 60 | number: 2"></span>&#160;m</span>
+              <span bo-if="backup.Duration < 60"><span bo-text="backup.Duration | number: 2"></span>&#160;s</span>
             </td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">ExpireTime</td>
             <td class="app-table-cell">
-              {{ backup.ExpireTime | date:'dd-MM-yyyy' }}
-              <span class="color-gray-50">&#160;—&#160;{{ backup.ExpireTime | date:'HH:mm:ss' }}</span>
+              <span bo-text="backup.ExpireTime | date:'dd-MM-yyyy'"></span>
+              <span class="color-gray-50">&#160;—&#160;<span bo-text="backup.ExpireTime | date:'HH:mm:ss'"></span></span>
             </td>
           </tr>
           <tr class="app-table-line">
             <td class="app-table-cell">TotalSize</td>
-            <td class="app-table-cell">{{ backup.TotalSize | bytes }}</td>
+            <td class="app-table-cell" bo-text="backup.TotalSize | bytes"></td>
           </tr>
-          <tr ng-show="backup.Files.length" class="app-table-line">
+          <tr bo-show="backup.Files.length" class="app-table-line">
             <td class="app-table-cell">Files</td>
             <td class="app-table-cell">
               <ul class="list-flat end">
-                <li ng-repeat="file in backup.Files">
-                  <a href="{{ file.source }}" download>{{ file.source }}</a>&#160;<span class="color-gray-40 smaller">{{ file.size | bytes }}</span>
+                <li bindonce ng-repeat="file in backup.Files">
+                  <a bo-href-i="{{ file.source }}" download bo-text="file.source"></a>&#160;<span class="color-gray-40 smaller" bo-text="file.size | bytes"></span>
                 </li>
               </ul>
             </td>
           </tr>
-          <tr ng-show="backup.Output" class="app-table-line">
+          <tr bo-show="backup.Output" class="app-table-line">
             <td class="app-table-cell">Output</td>
             <td class="app-table-cell">
               <code>
-                <pre>{{ backup.Output }}</pre>
+                <pre bo-text="backup.Output"></pre>
               </code>
             </td>
           </tr>
-          <tr ng-show="backup.Errput" class="app-table-line">
+          <tr bo-show="backup.Errput" class="app-table-line">
             <td class="app-table-cell">Errput</td>
             <td class="app-table-cell">
               <code>
-                <pre>{{ backup.Errput }}</pre>
+                <pre bo-text="backup.Errput"></pre>
               </code>
             </td>
           </tr>
