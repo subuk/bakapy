@@ -28,6 +28,8 @@ listen: 127.0.0.1:9876
 # smtp:
 #   host: 127.0.0.1
 #   port: 25
+#   mailfrom: user@example.com
+#   mailto: user@example.com
 
 #
 # Job definition files list (relative to this file).

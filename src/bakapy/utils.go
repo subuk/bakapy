@@ -1,6 +1,7 @@
 package bakapy
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/op/go-logging"
 	"log/syslog"
@@ -39,45 +40,82 @@ type NotificationTemplateContext struct {
 	Errput  string
 }
 
-func SendFailedJobNotification(cfg SMTPConfig, meta *JobMetadata) error {
-	curUser, err := user.Current()
+type NotificationSender interface {
+	SendMail(addr string, from string, to string, msg []byte) error
+	SendFailedJobNotification(meta *JobMetadata) error
+}
+
+type mailSender struct {
+	cfg    *SMTPConfig
+	send   func(string, string, string, []byte) error
+	notify func(*JobMetadata) error
+}
+
+func NewMailSender(cfg SMTPConfig) NotificationSender {
+	return &mailSender{cfg: &cfg}
+}
+
+// this SendMail makes all the same like smtp.SendMail, but w/o authentication
+func (ms *mailSender) SendMail(addr string, from string, to string, msg []byte) error {
+	c, err := smtp.Dial(addr)
 	if err != nil {
 		return err
 	}
-
-	if cfg.Host == "" {
-		cfg.Host = "127.0.0.1"
+	defer c.Close()
+	if err = c.Mail(from); err != nil {
+		return err
 	}
-
-	if cfg.Port == 0 {
-		cfg.Port = 25
+	if err = c.Rcpt(to); err != nil {
+		return err
 	}
-
-	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	conn, err := smtp.Dial(addr)
+	w, err := c.Data()
 	if err != nil {
 		return err
 	}
-
-	err = conn.Mail(curUser.Name)
+	_, err = w.Write(msg)
 	if err != nil {
 		return err
 	}
-
-	err = conn.Rcpt(curUser.Name)
+	err = w.Close()
 	if err != nil {
 		return err
 	}
+	return c.Quit()
+}
 
-	ds, err := conn.Data()
-	if err != nil {
-		return err
+func (ms *mailSender) SendFailedJobNotification(meta *JobMetadata) error {
+	// making input data for email
+	if ms.cfg.MailTo == "" {
+		curUser, err := user.Current()
+		if err != nil {
+			curUser = &user.User{"0", "0", "root", "root", "/root"}
+		}
+		ms.cfg.MailTo = curUser.Name
 	}
 
-	err = MAIL_TEMPLATE_JOB_FAILED.Execute(ds, NotificationTemplateContext{
-		From:    curUser.Name,
-		To:      curUser.Name,
-		Subject: fmt.Sprintf("[bakapy] job %s failed", meta.JobName),
+	if ms.cfg.Host == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			ms.cfg.Host = "localhost"
+		} else {
+			ms.cfg.Host = hostname
+		}
+	}
+
+	if ms.cfg.MailFrom == "" {
+		ms.cfg.MailFrom = fmt.Sprintf("bakapy@%s", ms.cfg.Host)
+	}
+
+	if ms.cfg.Port == 0 {
+		ms.cfg.Port = 25
+	}
+
+	var addr string = fmt.Sprintf("%s:%d", ms.cfg.Host, ms.cfg.Port)
+	msg := new(bytes.Buffer)
+	err := MAIL_TEMPLATE_JOB_FAILED.Execute(msg, NotificationTemplateContext{
+		From:    ms.cfg.MailFrom,
+		To:      ms.cfg.MailTo,
+		Subject: fmt.Sprintf("[bakapy] job '%s' failed", meta.JobName),
 		Message: meta.Message,
 		Output:  string(meta.Output),
 		Errput:  string(meta.Errput),
@@ -85,13 +123,8 @@ func SendFailedJobNotification(cfg SMTPConfig, meta *JobMetadata) error {
 	if err != nil {
 		return err
 	}
-
-	err = ds.Close()
-	if err != nil {
-		return err
-	}
-
-	err = conn.Quit()
+	// sending email
+	err = ms.send(addr, ms.cfg.MailFrom, ms.cfg.MailTo, msg.Bytes())
 	if err != nil {
 		return err
 	}
@@ -117,7 +150,8 @@ func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storag
 	logger.Info("metadata for job %s successfully saved to %s", metadata.TaskId, saveTo)
 	if !metadata.Success {
 		logger.Debug("sending failed job notification to current user")
-		if err := SendFailedJobNotification(gConfig.SMTP, metadata); err != nil {
+		sender := NewMailSender(gConfig.SMTP)
+		if err := sender.SendFailedJobNotification(metadata); err != nil {
 			logger.Critical("cannot send failed job notification: %s", err.Error())
 		}
 
