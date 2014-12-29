@@ -42,10 +42,12 @@ func main() {
 			logger.Warning("job %s disabled, skipping", jobName)
 			continue
 		}
-
-		scheduler.AddFunc(runSpec, func() {
-			bakapy.RunJob(jobName, jobConfig, config, storage)
-		})
+		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config, storage *bakapy.Storage) {
+			scheduler.AddFunc(runSpec, func() {
+				logger.Critical("Starting job %s", jobName)
+				bakapy.RunJob(jobName, jobConfig, config, storage)
+			})
+		}(jobName, jobConfig, config, storage)
 	}
 
 	if *TEST_CONFIG_ONLY {
