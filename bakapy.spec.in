@@ -73,6 +73,10 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
 
 %changelog
+* Sun Jan 04 2015 15:12:09 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.8.1-1
+- Web interface performance improvements
+- Fix job scheduling
+
 * Sat Dec 20 2014 19:09:19 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.8.0-1
 - Added web interface
 - Add MYSQLDUMP_EXTRA_ARGS option for backup-mysql-databases.sh
