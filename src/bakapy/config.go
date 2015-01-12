@@ -21,8 +21,10 @@ type Config struct {
 }
 
 type SMTPConfig struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
+	MailFrom string
+	MailTo   string
 }
 
 func (cfg *Config) PrettyFmt() []byte {
