@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -62,6 +63,50 @@ zzz:
 var JOBS_CONFIG_ONE = []byte(`
 yyy:
   namespace: one
+`)
+
+var TEST_CONFIG_REMOTE_FILTERS = []byte(`
+storage_dir: /tmp/backups/storage
+metadata_dir: /tmp/backups/metadata
+listen: 127.0.0.1:9876
+args:
+    vhosts_dir: /home/vhosts
+    backup_type: full
+    listed_incremental_dir: /tmp/backup-meta
+jobs:
+    xxx:
+      namespace: one
+      remote_filters:
+        - gzip: {level: 1}
+        - encrypt: {key: "secewr21!@$98"}
+`)
+
+var TEST_CONFIG_JOB_WITH_REMOTE_FILTERS = []byte(`
+storage_dir: /tmp/backups/storage
+metadata_dir: /tmp/backups/metadata
+command_dir: /etc/bakapy/commands
+listen: 127.0.0.1:9876
+args:
+    vhosts_dir: /home/vhosts
+    backup_type: full
+    listed_incremental_dir: /tmp/backup-meta
+jobs:
+    xxx:
+      namespace: one
+      host: user@192.168.10.149
+      remote_filters:
+        - gzip: {level: 1, force: true}
+        - encrypt: {key: "secewr21!@$98"}
+        - enlarge: {}
+`)
+
+var TEST_CONFIG_TEMPLATE_DIRECTORY = []byte(`
+storage_dir: /tmp/backups/storage
+metadata_dir: /tmp/backups/metadata
+jobs:
+    zzz:
+      namespace: two
+      temp_dir: ~/.bakapy_filters
 `)
 
 func TestParseConfig_WithJobs(t *testing.T) {
@@ -236,5 +281,77 @@ func TestRunAtSpec_SchedulerString_WithSecond(t *testing.T) {
 	s := spec.SchedulerString()
 	if s != "4 3 44 * * *" {
 		t.Fatal("Must be '4 3 44 * * *' not ", s)
+	}
+}
+
+func TestParseConfig_JobsWithRemoteFilters(t *testing.T) {
+	cfg, _ := ioutil.TempFile("", "test_config")
+	cfg.Write(TEST_CONFIG_REMOTE_FILTERS)
+	cfg.Close()
+	defer os.Remove(cfg.Name())
+
+	config, err := ParseConfig(cfg.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(config.Jobs["xxx"].RemoteFilters) != 2 {
+		t.Fatal("RemoteFilters length != 2 | ", len(config.Jobs["xxx"].RemoteFilters))
+	}
+
+	if _, exist := config.Jobs["xxx"].RemoteFilters[0]["gzip"]; !exist {
+		t.Fatal("Remote filters does not parsed")
+	}
+	if value := config.Jobs["xxx"].RemoteFilters[0]["gzip"].Params["level"]; value != "1" {
+		t.Fatalf(`Remote filters does not parse values properly: "%s"; want "1"`)
+	}
+}
+
+func TestParseConfig_TemplateDirectory(t *testing.T) {
+	cfg, _ := ioutil.TempFile("", "test_config")
+	cfg.Write(TEST_CONFIG_TEMPLATE_DIRECTORY)
+	cfg.Close()
+	defer os.Remove(cfg.Name())
+
+	config, err := ParseConfig(cfg.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Jobs["zzz"].TempDir != "~/.bakapy_filters" {
+		t.Fatalf(`Wrong template directory: "%s"; expected "~/.bakapy_filters"`, config.Jobs["zzz"].TempDir)
+	}
+}
+
+func TestMakeRemoteFiltersOnClient(t *testing.T) {
+	cfg, _ := ioutil.TempFile("", "test_config")
+	cfg.Write(TEST_CONFIG_JOB_WITH_REMOTE_FILTERS)
+	cfg.Close()
+	defer os.Remove(cfg.Name())
+
+	config, err := ParseConfig(cfg.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedFiltersCmds := []*regexp.Regexp{
+		regexp.MustCompile(`[ARG_FORCE=true|ARG_LEVEL=1]{2} /tmp/filter[a-zA-Z0-9]{12}\.sh`),
+		regexp.MustCompile(`ARG_KEY=secewr21!@\$98 /tmp/filter[a-zA-Z0-9]{12}\.sh`),
+		regexp.MustCompile(`/tmp/filter[a-zA-Z0-9]{12}\.sh`),
+	}
+
+	filters, err := config.Jobs["xxx"].RemoteFilters.MakeFiltersOnClient(config.Jobs["xxx"].Host, config.CommandDir, false)
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+
+	if len(filters) != 3 {
+		t.Fatalf("Unexpected filters quantity: %d\n", len(filters))
+	}
+
+	for i := 0; i < len(filters); i++ {
+		if !expectedFiltersCmds[i].MatchString(filters[i]) {
+			t.Fatalf("Unexpected filter command: %s\n", filters[i])
+		}
 	}
 }
