@@ -15,20 +15,24 @@ type Executer interface {
 }
 
 type BashExecutor struct {
-	Args   map[string]string
-	Host   string
-	Port   uint
-	Sudo   bool
-	logger *logging.Logger
+	Args          map[string]string
+	Host          string
+	Port          uint
+	Sudo          bool
+	CmdDir        string
+	RemoteFilters *Filters
+	logger        *logging.Logger
 }
 
-func NewBashExecutor(args map[string]string, host string, port uint, sudo bool) *BashExecutor {
+func NewBashExecutor(args map[string]string, host string, port uint, sudo bool, cmddir string, remotefilters *Filters) *BashExecutor {
 	return &BashExecutor{
-		Args:   args,
-		Host:   host,
-		Port:   port,
-		Sudo:   sudo,
-		logger: logging.MustGetLogger("bakapy.executor.ssh"),
+		Args:          args,
+		Host:          host,
+		Port:          port,
+		Sudo:          sudo,
+		CmdDir:        cmddir,
+		RemoteFilters: remotefilters,
+		logger:        logging.MustGetLogger("bakapy.executor.ssh"),
 	}
 }
 
@@ -48,6 +52,14 @@ func (e *BashExecutor) GetCmd() (*exec.Cmd, error) {
 		remoteCmd = fmt.Sprintf("sudo %s /bin/bash", strings.Join(env, " "))
 	} else {
 		remoteCmd = fmt.Sprintf("%s /bin/bash", strings.Join(env, " "))
+	}
+
+	if e.RemoteFilters != nil && len(*e.RemoteFilters) > 0 {
+		filterCmdStrings, err := e.RemoteFilters.MakeFiltersOnClient(e.Host, e.CmdDir)
+		if err != nil {
+			return nil, err
+		}
+		remoteCmd = strings.Join(filterCmdStrings, "|") + "|" + remoteCmd
 	}
 
 	var args []string
@@ -93,13 +105,10 @@ func (e *BashExecutor) Execute(script []byte, output io.Writer, errput io.Writer
 	e.logger.Debug("executing command '%s'",
 		strings.Join(cmd.Args, " "))
 
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
+
 	return nil
 }

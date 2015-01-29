@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
@@ -56,19 +58,65 @@ func (r *RunAtSpec) SchedulerString() string {
 	)
 }
 
+type Filter struct {
+	Params map[string]string
+}
+
+func (filter *Filter) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&filter.Params)
+}
+
+type Filters []map[string]Filter
+
+func (filters *Filters) MakeFiltersOnClient(host string, cmdDir string, execute ...bool) ([]string, error) {
+	// execute[0] == false needs for testing purposes only
+
+	remote_files := []string{}
+	// pluck filters by their order in filters' array
+	for _, filter := range *filters {
+		// winkle filter name and args from map
+		var filter_name string
+		var filter_args Filter
+		for filter_name, filter_args = range filter {
+		}
+		filter_name = "filter_" + filter_name + ".sh"
+		// check existance filters' file by name
+		filter_full_name := path.Join(cmdDir, filter_name)
+		if execute == nil || execute[0] == true {
+			_, err := os.Stat(filter_full_name)
+			if os.IsNotExist(err) {
+				return nil, err
+			}
+		}
+		// by scp make filter script file on client side (eg, in /tmp)
+		remote_name := "filter" + randStr(12) + ".sh"
+		copyFilter := exec.Command("scp", filter_full_name, host+":/tmp/"+remote_name)
+		if execute == nil || execute[0] == true {
+			err := copyFilter.Run()
+			if err != nil {
+				return nil, err
+			}
+		}
+		remote_files = append(remote_files, argsToString(filter_args)+" /tmp/"+remote_name)
+	}
+	return remote_files, nil
+}
+
 type JobConfig struct {
-	Sudo       bool
-	Disabled   bool
-	Gzip       bool
-	MaxAgeDays int           `yaml:"max_age_days"`
-	MaxAge     time.Duration `yaml:"max_age"`
-	Namespace  string
-	Host       string
-	Port       uint
-	Command    string
-	Args       map[string]string
-	RunAt      RunAtSpec `yaml:"run_at"`
-	executor   Executer  `yaml:"-"`
+	Sudo          bool
+	Disabled      bool
+	Gzip          bool
+	MaxAgeDays    int           `yaml:"max_age_days"`
+	MaxAge        time.Duration `yaml:"max_age"`
+	Namespace     string
+	Host          string
+	Port          uint
+	Command       string
+	Args          map[string]string
+	RunAt         RunAtSpec `yaml:"run_at"`
+	executor      Executer  `yaml:"-"`
+	TempDir       string    `yaml:"temp_dir"`
+	RemoteFilters Filters   `yaml:"remote_filters"`
 }
 
 func (jobConfig *JobConfig) Sanitize() error {

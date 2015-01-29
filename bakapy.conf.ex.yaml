@@ -38,3 +38,8 @@ listen: 127.0.0.1:9876
 #
 include_jobs:
   - jobs.conf.ex.yaml
+
+#
+# Template filters directory path (default is ~/.bakapy_filters)
+#
+# temp_dir: ~/.bakapy_filters

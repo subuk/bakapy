@@ -2,14 +2,19 @@ package bakapy
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/op/go-logging"
 	"log/syslog"
+	"math/rand"
 	"net/smtp"
 	"os"
+	"os/exec"
 	"os/user"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func SetupLogging(logLevel string) error {
@@ -135,13 +140,16 @@ func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storag
 	logger := logging.MustGetLogger("bakapy.job")
 	executor := jConfig.executor
 	if executor == nil {
-		executor = NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo)
+		executor = NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo, gConfig.CommandDir, &jConfig.RemoteFilters)
 	}
 	job := NewJob(
 		jobName, jConfig, gConfig.Listen,
 		gConfig.CommandDir, storage, executor,
 	)
+
+	job.checkTempDirExistance()
 	metadata := job.Run()
+	job.removeTempDir()
 	saveTo := path.Join(gConfig.MetadataDir, string(metadata.TaskId))
 	err := metadata.Save(saveTo)
 	if err != nil {
@@ -160,4 +168,108 @@ func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storag
 		logger.Info("job '%s' finished", job.Name)
 	}
 	return saveTo
+}
+
+var stuff = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStr(length int) string {
+	raw := make([]rune, length)
+	rand.Seed(int64(time.Now().Unix()))
+	for i := range raw {
+		raw[i] = stuff[rand.Intn(len(stuff))]
+	}
+	return string(raw)
+}
+
+func argsToString(args Filter) string {
+	if len(args.Params) < 1 {
+		return ""
+	}
+
+	result := ""
+	for key, value := range args.Params {
+		result = result + " ARG_" + strings.ToUpper(key) + "=" + value
+	}
+	return result
+}
+
+// runCmdThroughSSH assuming that host already has authorized_keys
+func runCmdThroughSSH(cmd string, host string, port uint) (bytes.Buffer, error) {
+	var out bytes.Buffer
+	sshCmd := exec.Command("ssh", host, "-oBatchMode=yes", "-p"+strconv.FormatUint(uint64(port), 10), cmd)
+	sshCmd.Stdout = &out
+	err := sshCmd.Run()
+	return out, err
+}
+
+func (job *Job) hasRemoteFilters() bool {
+	if len(job.cfg.RemoteFilters) > 0 {
+		return true
+	}
+	return false
+}
+
+func (job *Job) checkTempDirExistance() error {
+	// ...and mkdir it, if it's not exist
+	if !job.hasRemoteFilters() {
+		return nil
+	}
+
+	job.logger.Debug("create template directory for remote filters")
+	dir := job.cfg.TempDir
+	if job.cfg.TempDir == "" {
+		dir = "~/.bakapy_filters"
+	}
+
+	out, err := runCmdThroughSSH("test -d "+dir+" && echo 1 || echo 0", job.cfg.Host, job.cfg.Port)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(out.String()) == "0" {
+		out, err = runCmdThroughSSH("mkdir "+dir+" && echo 1 || echo 0", job.cfg.Host, job.cfg.Port)
+		if err != nil {
+			return err
+		}
+		out, err = runCmdThroughSSH("chmod 700 "+dir+" && echo 1 || echo 0", job.cfg.Host, job.cfg.Port)
+		if err != nil {
+			return err
+		}
+	}
+
+	if strings.TrimSpace(out.String()) == "0" {
+		return errors.New("Can't create template filters directory.")
+	}
+
+	return nil
+}
+
+func (job *Job) removeTempDir() error {
+	if !job.hasRemoteFilters() {
+		return nil
+	}
+
+	job.logger.Debug("remove template directory w/ remote filters")
+	dir := job.cfg.TempDir
+	if job.cfg.TempDir == "" {
+		dir = "~/.bakapy_filters"
+	}
+
+	out, err := runCmdThroughSSH("test -d "+dir+" && echo 1 || echo 0", job.cfg.Host, job.cfg.Port)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(out.String()) == "1" {
+		out, err = runCmdThroughSSH("rm -rf "+dir+"/filter*.sh && echo 1 || echo 0", job.cfg.Host, job.cfg.Port)
+		if err != nil {
+			return err
+		}
+	}
+
+	if strings.TrimSpace(out.String()) == "0" {
+		return errors.New("Can't clean template filters directory.")
+	}
+
+	return nil
 }

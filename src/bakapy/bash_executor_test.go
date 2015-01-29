@@ -13,7 +13,7 @@ func TestBashExecutor_GetCmd_Local(t *testing.T) {
 	host := ""
 	port := uint(22)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 
 	if err != nil {
@@ -32,7 +32,7 @@ func TestBashExecutor_GetCmd_LocalSudo(t *testing.T) {
 	host := ""
 	port := uint(22)
 	sudo := true
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -51,7 +51,7 @@ func TestBashExecutor_GetCmd_Remote(t *testing.T) {
 	host := "test-host.example"
 	port := uint(2424)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 
 	if err != nil {
@@ -71,7 +71,7 @@ func TestBashExecutor_GetCmd_RemoteSudo(t *testing.T) {
 	host := "test-host.example"
 	port := uint(2424)
 	sudo := true
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 
 	if err != nil {
@@ -91,7 +91,7 @@ func TestBashExecutor_GetCmd_RemoteNoPort(t *testing.T) {
 	host := "test-host.example"
 	port := uint(0)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 
 	if err != nil {
@@ -109,7 +109,7 @@ func TestBashExecutor_GetCmd_RemoteNoArgs(t *testing.T) {
 	host := "test-host.example"
 	port := uint(2323)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 	cmd, err := executor.GetCmd()
 
 	if err != nil {
@@ -126,7 +126,7 @@ func TestBashExecutor_Execute_CommandOk(t *testing.T) {
 	host := ""
 	port := uint(2323)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 
 	script := []byte(`echo -n hello; exit 0;`)
 	output := new(bytes.Buffer)
@@ -148,7 +148,7 @@ func TestBashExecutor_Execute_CommandFailed(t *testing.T) {
 	host := ""
 	port := uint(2323)
 	sudo := false
-	executor := NewBashExecutor(args, host, port, sudo)
+	executor := NewBashExecutor(args, host, port, sudo, "", nil)
 
 	script := []byte(`echo -n some errput >&2; exit 19;`)
 	output := new(bytes.Buffer)

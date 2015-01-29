@@ -68,6 +68,18 @@ example:
     month: '*'
     weekday: '*'
 
+  #
+  # Remote filter
+  #
+  remote_filters:
+    - gzip: {level: 1}
+
+  #
+  # Local filters
+  #
+  local_filters:
+    - encrypt: {key: "secewr21!@$98"}
+
 plesk-vhosts-full:
   disabled: false
   namespace: vhosts
