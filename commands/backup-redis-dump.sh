@@ -1,3 +1,4 @@
+START_DATE=$(date "+%Y-%m-%d_%H%M%S")
 REDIS_CONFIG="/etc/redis/redis.conf"
 DUMP_DIR="$(cat $REDIS_CONFIG | grep "^dir " | awk '{print $2}')"
 
@@ -32,7 +33,5 @@ while [ $LASTSAVE == "$(redis-cli lastsave)" ]
 do
   sleep 1
 done
-
-START_DATE=$(date "+%Y-%m-%d_%H%M%S")
 
 cat $DUMP_PATH | gzip -f | _send_file "${START_DATE}-${DUMP_PATH}"
