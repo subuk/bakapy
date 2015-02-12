@@ -3,7 +3,6 @@ package bakapy
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,6 +10,15 @@ import (
 	"sync"
 	"time"
 )
+
+type MetaManager interface {
+	Keys() ([]TaskId, error)
+	View(id TaskId) (Metadata, error)
+	ViewAll() chan viewIterItem
+	Add(jobName, namespace, command string, taskId TaskId, gzip bool, maxAge time.Duration) error
+	Update(id TaskId, up func(m *Metadata)) error
+	Remove(id TaskId) error
+}
 
 type MetaMan struct {
 	RootDir string
@@ -36,7 +44,7 @@ func (m *MetaMan) Keys() ([]TaskId, error) {
 	return ret, nil
 }
 
-func (m *MetaMan) Get(id TaskId) (*Metadata, error) {
+func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 	data, err := ioutil.ReadFile(ospath.Join(m.RootDir, id.String()))
 	if err != nil {
 		return nil, err
@@ -50,14 +58,22 @@ func (m *MetaMan) Get(id TaskId) (*Metadata, error) {
 	return metadata, nil
 }
 
-func (m *MetaMan) GetForUpdate(id TaskId) (*Metadata, error) {
+func (m *MetaMan) View(id TaskId) (Metadata, error) {
+	md, err := m.get(id)
+	if err != nil {
+		return Metadata{}, err
+	}
+	return *md, err
+}
+
+func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
 	lock, exist := m.taken[id]
 	if !exist {
-		lock := &sync.Mutex{}
+		lock = new(sync.Mutex)
 		m.taken[id] = lock
 	}
 	lock.Lock()
-	data, err := m.Get(id)
+	data, err := m.get(id)
 	if err != nil {
 		lock.Unlock()
 		return nil, err
@@ -80,7 +96,7 @@ func (m *MetaMan) ViewAll() chan viewIterItem {
 			return
 		}
 		for _, key := range paths {
-			metadata, err := m.Get(key)
+			metadata, err := m.get(key)
 			ch <- viewIterItem{metadata, err}
 		}
 		close(ch)
@@ -88,19 +104,16 @@ func (m *MetaMan) ViewAll() chan viewIterItem {
 	return ch
 }
 
-func (m *MetaMan) Commit(id TaskId, metadata *Metadata) error {
-	lock, exist := m.taken[id]
-	if !exist {
-		return fmt.Errorf("metadata %s not taken", id)
-	}
+func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
 
 	saveTo := ospath.Join(m.RootDir, id.String())
+	saveToTmp := saveTo + ".inpr"
 
 	err := os.MkdirAll(ospath.Dir(saveTo), 0750)
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(saveTo)
+	file, err := os.Create(saveToTmp)
 	if err != nil {
 		return err
 	}
@@ -114,7 +127,13 @@ func (m *MetaMan) Commit(id TaskId, metadata *Metadata) error {
 		return err
 	}
 
-	lock.Unlock()
+	err = os.Rename(saveToTmp, saveTo)
+	if err != nil {
+		return err
+	}
+	if lock, exist := m.taken[id]; exist {
+		lock.Unlock()
+	}
 	return nil
 }
 
@@ -129,20 +148,24 @@ func (m *MetaMan) Add(jobName, namespace, command string, taskId TaskId, gzip bo
 		StartTime:  now,
 		ExpireTime: now.Add(maxAge),
 	}
-	return m.Commit(taskId, metadata)
+	return m.save(taskId, metadata)
 }
 
 func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
-	md, err := m.GetForUpdate(id)
+	md, err := m.getForUpdate(id)
 	if err != nil {
 		return err
 	}
 	up(md)
-	return m.Commit(id, md)
+	err = m.save(id, md)
+	if err != nil {
+		panic(err)
+	}
+	return nil
 }
 
 func (m *MetaMan) Remove(id TaskId) error {
-	md, err := m.GetForUpdate(id)
+	md, err := m.getForUpdate(id)
 	if err != nil {
 		return err
 	}

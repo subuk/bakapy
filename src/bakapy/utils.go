@@ -130,29 +130,29 @@ func (ms *mailSender) SendFailedJobNotification(meta *Metadata) error {
 	return nil
 }
 
-func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storage, metaman *MetaMan) {
-	logger := logging.MustGetLogger("bakapy.job")
+func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, metaman MetaManager) TaskId {
+	// logger := logging.MustGetLogger("bakapy.job")
 	executor := jConfig.executor
 	if executor == nil {
 		executor = NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo)
 	}
 	job := NewJob(
 		jobName, jConfig, gConfig.Listen,
-		gConfig.CommandDir, storage, executor,
+		gConfig.CommandDir, executor,
 		metaman,
 	)
-	err := job.Run()
-	metadata, _ := metaman.Get(job.TaskId)
+	_ = job.Run()
+	_, _ = metaman.View(job.TaskId)
+	// if err != nil {
+	// 	logger.Debug("sending failed job notification to current user")
+	// 	sender := NewMailSender(gConfig.SMTP)
+	// 	if err := sender.SendFailedJobNotification(&metadata); err != nil {
+	// 		logger.Critical("cannot send failed job notification: %s", err.Error())
+	// 	}
 
-	if err != nil {
-		logger.Debug("sending failed job notification to current user")
-		sender := NewMailSender(gConfig.SMTP)
-		if err := sender.SendFailedJobNotification(metadata); err != nil {
-			logger.Critical("cannot send failed job notification: %s", err.Error())
-		}
-
-		logger.Critical("job '%s' failed", job.Name)
-	} else {
-		logger.Info("job '%s' finished", job.Name)
-	}
+	// 	logger.Critical("job '%s' failed", job.Name)
+	// } else {
+	// 	logger.Info("job '%s' finished", job.Name)
+	// }
+	return job.TaskId
 }

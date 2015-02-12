@@ -38,10 +38,10 @@ type Job struct {
 	executor    Executer
 	cfg         *JobConfig
 	logger      *logging.Logger
-	metaman     *MetaMan
+	metaman     MetaManager
 }
 
-func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer, metaman *MetaMan) *Job {
+func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, executor Executer, metaman MetaManager) *Job {
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
@@ -83,7 +83,7 @@ func (job *Job) getScript() ([]byte, error) {
 
 func (job *Job) Run() error {
 	job.logger.Info("starting up")
-	job.metaman.Add(
+	err := job.metaman.Add(
 		job.Name,
 		job.cfg.Namespace,
 		job.cfg.Command,
@@ -91,7 +91,9 @@ func (job *Job) Run() error {
 		job.cfg.Gzip,
 		job.cfg.MaxAge,
 	)
-
+	if err != nil {
+		return fmt.Errorf("cannot add metadata: %s", err)
+	}
 	script, err := job.getScript()
 	if err != nil {
 		job.logger.Warning("cannot get job script: %s", err.Error())
@@ -108,7 +110,7 @@ func (job *Job) Run() error {
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
 
-	err = job.metaman.Update(job.TaskId, func(md *Metadata) {
+	job.metaman.Update(job.TaskId, func(md *Metadata) {
 		md.Output = output.Bytes()
 		md.Errput = errput.Bytes()
 	})

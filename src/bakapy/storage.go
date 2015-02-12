@@ -13,12 +13,6 @@ import (
 	"time"
 )
 
-type Jober interface {
-	AddJob(currentJob *StorageCurrentJob)
-	RemoveJob(id TaskId)
-	WaitJob(taskId TaskId)
-}
-
 type StorageCurrentJob struct {
 	TaskId      TaskId
 	FileAddChan chan MetadataFileEntry
@@ -27,23 +21,22 @@ type StorageCurrentJob struct {
 }
 
 type Storage struct {
-	*StorageJobManager
 	RootDir     string
-	metaman     *MetaMan
+	metaman     MetaManager
 	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
 
-func NewStorage(cfg *Config) *Storage {
+func NewStorage(cfg *Config, metaman MetaManager) *Storage {
 	return &Storage{
-		StorageJobManager: NewStorageJobManager(),
-		RootDir:           cfg.StorageDir,
-		currentJobs:       make(map[TaskId]StorageCurrentJob),
-		connections:       make(chan *StorageConn),
-		listenAddr:        cfg.Listen,
-		logger:            logging.MustGetLogger("bakapy.storage"),
+		RootDir:     cfg.StorageDir,
+		currentJobs: make(map[TaskId]StorageCurrentJob),
+		connections: make(chan *StorageConn),
+		listenAddr:  cfg.Listen,
+		metaman:     metaman,
+		logger:      logging.MustGetLogger("bakapy.storage"),
 	}
 }
 
@@ -93,14 +86,11 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 		return errors.New(msg)
 	}
 
-	currentJob, exist := stor.GetJob(taskId)
-	if !exist {
+	metadata, err := stor.metaman.View(taskId)
+	if err != nil {
 		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
 		return errors.New(msg)
 	}
-
-	stor.AddConnection(taskId)
-	defer stor.RemoveConnection(taskId)
 
 	filename, err := conn.ReadFilename()
 	if err != nil {
@@ -115,11 +105,11 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 
 	fileSavePath := path.Join(
 		stor.RootDir,
-		currentJob.Namespace,
+		metadata.Namespace,
 		filename,
 	)
 
-	if currentJob.Gzip {
+	if metadata.Gzip {
 		fileSavePath += ".gz"
 	}
 
@@ -143,7 +133,7 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 
 	var file io.WriteCloser
 	var gzWriter io.WriteCloser
-	if currentJob.Gzip {
+	if metadata.Gzip {
 		gzWriter = gzip.NewWriter(fd)
 		file = gzWriter
 	} else {
@@ -158,14 +148,20 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 	}
 
 	stream.Flush()
-	if currentJob.Gzip {
+	if metadata.Gzip {
 		gzWriter.Close()
 	}
 	fd.Close()
 
-	stor.logger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
+	stor.logger.Debug("adding file %s to metadata", fileMeta.Name)
 	fileMeta.Size = written
 	fileMeta.EndTime = time.Now()
-	currentJob.FileAddChan <- fileMeta
+
+	err = stor.metaman.Update(taskId, func(md *Metadata) {
+		md.Files = append(md.Files, fileMeta)
+	})
+	if err != nil {
+		stor.logger.Critical("cannot save metadata: %s", err.Error())
+	}
 	return nil
 }

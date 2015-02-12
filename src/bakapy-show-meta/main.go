@@ -42,12 +42,12 @@ func main() {
 	var metas []*bakapy.Metadata
 	for _, metaPath := range os.Args[1:] {
 		metaman := bakapy.NewMetaMan(&bakapy.Config{MetadataDir: path.Dir(metaPath)})
-		meta, err := metaman.Get(bakapy.TaskId(path.Base(metaPath)))
+		meta, err := metaman.View(bakapy.TaskId(path.Base(metaPath)))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[warning] %s: %s\n", metaPath, err)
 			continue
 		}
-		metas = append(metas, meta)
+		metas = append(metas, &meta)
 	}
 	if len(metas) == 0 {
 		fmt.Println("[warning] no valid metadatas found")
