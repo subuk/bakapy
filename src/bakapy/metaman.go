@@ -165,9 +165,5 @@ func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
 }
 
 func (m *MetaMan) Remove(id TaskId) error {
-	md, err := m.getForUpdate(id)
-	if err != nil {
-		return err
-	}
-	return os.Remove(ospath.Join(m.RootDir, md.TaskId.String()))
+	return os.Remove(ospath.Join(m.RootDir, id.String()))
 }
