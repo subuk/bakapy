@@ -32,6 +32,7 @@ func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
 	cfg := NewConfig()
 	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
 	err := storage.HandleConnection(protohandle)
 	expectedError := "Cannot find task id 'a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c' in current job list, closing connection"
 	if err.Error() != expectedError {
@@ -48,6 +49,7 @@ func TestStorage_HandleConnection_JobFinishWordWorks(t *testing.T) {
 	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
 	err := storage.metaman.Add("testjob", "test/wow", "cmd", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", true, 10000)
 	if err != nil {
 		t.Fatal("cannot add metadata:", err)
@@ -71,6 +73,7 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
 
 	err := storage.metaman.Add("testjob", "test/wow", "xxx", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", true, 10000)
 	if err != nil {
@@ -111,6 +114,7 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
 
 	err := storage.metaman.Add("testjob", "test/wow", "xxx", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", false, 10000)
 	if err != nil {
