@@ -32,6 +32,7 @@ func main() {
 	logger.Debug(string(config.PrettyFmt()))
 
 	storage := bakapy.NewStorage(config)
+	metaman := bakapy.NewMetaMan(config)
 
 	scheduler := cron.New()
 	for jobName, jobConfig := range config.Jobs {
@@ -45,7 +46,7 @@ func main() {
 		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config, storage *bakapy.Storage) {
 			scheduler.AddFunc(runSpec, func() {
 				logger.Critical("Starting job %s", jobName)
-				bakapy.RunJob(jobName, jobConfig, config, storage)
+				bakapy.RunJob(jobName, jobConfig, config, storage, metaman)
 			})
 		}(jobName, jobConfig, config, storage)
 	}

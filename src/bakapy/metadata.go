@@ -1,13 +1,7 @@
 package bakapy
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path"
 	"time"
 )
 
@@ -60,38 +54,4 @@ func (metadata *Metadata) AvgSpeed() int64 {
 		return 0
 	}
 	return metadata.TotalSize / int64(metadata.Duration().Seconds())
-}
-
-func (metadata *Metadata) Save(saveTo string) error {
-	err := os.MkdirAll(path.Dir(saveTo), 0750)
-	if err != nil {
-		return err
-	}
-	file, err := os.Create(saveTo)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	jsonData, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(file, bytes.NewReader(jsonData))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func LoadMetadata(path string) (*Metadata, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	metadata := Metadata{}
-	err = json.Unmarshal(data, &metadata)
-	if err != nil {
-		return nil, err
-	}
-	return &metadata, nil
 }

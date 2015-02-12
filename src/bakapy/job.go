@@ -13,6 +13,10 @@ import (
 
 type TaskId string
 
+func (t *TaskId) String() string {
+	return string(*t)
+}
+
 type JobTemplateContext struct {
 	Job              *Job
 	FILENAME_LEN_LEN uint
@@ -31,13 +35,13 @@ type Job struct {
 	TaskId      TaskId
 	StorageAddr string
 	CommandDir  string
-	storage     Jober
 	executor    Executer
 	cfg         *JobConfig
 	logger      *logging.Logger
+	metaman     *MetaMan
 }
 
-func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer) *Job {
+func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, jober Jober, executor Executer, metaman *MetaMan) *Job {
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
@@ -48,7 +52,7 @@ func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, 
 		cfg:         cfg,
 		executor:    executor,
 		logger:      logging.MustGetLogger(loggerName),
-		storage:     jober,
+		metaman:     metaman,
 	}
 }
 
@@ -77,73 +81,52 @@ func (job *Job) getScript() ([]byte, error) {
 	return script.Bytes(), nil
 }
 
-func (job *Job) Run() *Metadata {
-	metadata := &Metadata{
-		JobName:   job.Name,
-		Gzip:      job.cfg.Gzip,
-		Namespace: job.cfg.Namespace,
-		Pid:       os.Getpid(),
-		Command:   job.cfg.Command,
-		Config:    *job.cfg,
-		StartTime: time.Now(),
-		TaskId:    job.TaskId,
-		Success:   false,
-	}
-	metadata.ExpireTime = metadata.StartTime.Add(job.cfg.MaxAge)
+func (job *Job) Run() error {
 	job.logger.Info("starting up")
+	job.metaman.Add(
+		job.Name,
+		job.cfg.Namespace,
+		job.cfg.Command,
+		job.TaskId,
+		job.cfg.Gzip,
+		job.cfg.MaxAge,
+	)
 
 	script, err := job.getScript()
 	if err != nil {
 		job.logger.Warning("cannot get job script: %s", err.Error())
-		metadata.Message = err.Error()
-		return metadata
+		job.metaman.Update(job.TaskId, func(md *Metadata) {
+			md.Message = err.Error()
+		})
+		return err
 	}
-	metadata.Script = script
-
-	fileAddChan := make(chan MetadataFileEntry, 20)
-
-	job.storage.AddJob(&StorageCurrentJob{
-		Gzip:        job.cfg.Gzip,
-		TaskId:      job.TaskId,
-		Namespace:   job.cfg.Namespace,
-		FileAddChan: fileAddChan,
-	})
-
-	go func() {
-		for fileMeta := range fileAddChan {
-			job.logger.Debug("adding new file metadata: %s", fileMeta.String())
-			metadata.Files = append(metadata.Files, fileMeta)
-			metadata.TotalSize += fileMeta.Size
-		}
-		job.logger.Debug("filemeta updater stopped")
-	}()
 
 	output := new(bytes.Buffer)
 	errput := new(bytes.Buffer)
 	err = job.executor.Execute(script, output, errput)
 
-	job.storage.RemoveJob(job.TaskId)
-
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
 
-	metadata.Output = output.Bytes()
-	metadata.Errput = errput.Bytes()
+	err = job.metaman.Update(job.TaskId, func(md *Metadata) {
+		md.Output = output.Bytes()
+		md.Errput = errput.Bytes()
+	})
 
 	if err != nil {
 		job.logger.Warning("command failed: %s", err)
-		metadata.Success = false
-		metadata.Message = err.Error()
-		metadata.EndTime = time.Now()
-		return metadata
+		job.metaman.Update(job.TaskId, func(md *Metadata) {
+			md.Success = false
+			md.Message = err.Error()
+			md.EndTime = time.Now().UTC()
+		})
+		return err
 	}
 
-	metadata.Success = true
-	metadata.Message = "OK"
-	metadata.EndTime = time.Now()
-
-	job.logger.Debug("waiting storage")
-	job.storage.WaitJob(job.TaskId)
-	close(fileAddChan)
-	return metadata
+	job.metaman.Update(job.TaskId, func(md *Metadata) {
+		md.Success = true
+		md.Message = "OK"
+		md.EndTime = time.Now().UTC()
+	})
+	return nil
 }

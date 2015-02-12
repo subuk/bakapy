@@ -29,7 +29,7 @@ type StorageCurrentJob struct {
 type Storage struct {
 	*StorageJobManager
 	RootDir     string
-	MetadataDir string
+	metaman     *MetaMan
 	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
 	connections chan *StorageConn
@@ -39,7 +39,6 @@ type Storage struct {
 func NewStorage(cfg *Config) *Storage {
 	return &Storage{
 		StorageJobManager: NewStorageJobManager(),
-		MetadataDir:       cfg.MetadataDir,
 		RootDir:           cfg.StorageDir,
 		currentJobs:       make(map[TaskId]StorageCurrentJob),
 		connections:       make(chan *StorageConn),

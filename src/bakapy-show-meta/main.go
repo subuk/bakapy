@@ -4,6 +4,7 @@ import (
 	"bakapy"
 	"fmt"
 	"os"
+	"path"
 	"sort"
 )
 
@@ -37,9 +38,11 @@ func main() {
 		fmt.Println(USAGE)
 		os.Exit(1)
 	}
+
 	var metas []*bakapy.Metadata
 	for _, metaPath := range os.Args[1:] {
-		meta, err := bakapy.LoadMetadata(metaPath)
+		metaman := bakapy.NewMetaMan(&bakapy.Config{MetadataDir: path.Dir(metaPath)})
+		meta, err := metaman.Get(bakapy.TaskId(path.Base(metaPath)))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[warning] %s: %s\n", metaPath, err)
 			continue

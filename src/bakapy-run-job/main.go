@@ -25,6 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	metaman := bakapy.NewMetaMan(config)
 	storage := bakapy.NewStorage(config)
 
 	jobName := *JOB_NAME
@@ -35,5 +36,5 @@ func main() {
 	}
 
 	storage.Start()
-	bakapy.RunJob(jobName, jobConfig, config, storage)
+	bakapy.RunJob(jobName, jobConfig, config, storage, metaman)
 }
