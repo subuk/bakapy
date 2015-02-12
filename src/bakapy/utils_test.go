@@ -25,7 +25,7 @@ func TestRunJob_MetadataCreated(t *testing.T) {
 	}
 	os.Create(gConfig.CommandDir + "/" + "wow.cmd")
 	metadataPath := RunJob("testjob", jConfig, gConfig, storage)
-	meta, err := LoadJobMetadata(metadataPath)
+	meta, err := LoadMetadata(metadataPath)
 	if err != nil {
 		t.Fatal("cannot load metadata:", err)
 	}
@@ -48,7 +48,7 @@ func TestRunJob_MetadataDirDoesNotExist(t *testing.T) {
 	}
 	os.Create(gConfig.CommandDir + "/" + "wow.cmd")
 	metadataPath := RunJob("testjob", jConfig, gConfig, storage)
-	_, err := LoadJobMetadata(metadataPath)
+	_, err := LoadMetadata(metadataPath)
 	if err == nil {
 		t.Fatal("metadata loaded but not expected")
 	}
@@ -57,7 +57,7 @@ func TestRunJob_MetadataDirDoesNotExist(t *testing.T) {
 func TestSendFailedJobNotification_WithoutParameters(t *testing.T) {
 	var cfg = &SMTPConfig{}
 
-	meta := &JobMetadata{
+	meta := &Metadata{
 		JobName: "test J0b",
 		Message: "testing message",
 		Output:  []byte("some output"),
@@ -108,7 +108,7 @@ func TestSendFailedJobNotification_WithAllParameters(t *testing.T) {
 	fromEmail := "bakapy@localhost"
 	var cfg = &SMTPConfig{"localhost", 25, fromEmail, localEmail}
 
-	meta := &JobMetadata{
+	meta := &Metadata{
 		JobName: "test J0b",
 		Message: "testing message",
 		Output:  []byte("some output"),
@@ -149,7 +149,7 @@ func TestSendFailedJobNotification_WithOuterEmail(t *testing.T) {
 	fromEmail := "bakapy@localhost"
 	var cfg = &SMTPConfig{"localhost", 25, fromEmail, "bakapy@mailforspam.com"}
 
-	meta := &JobMetadata{
+	meta := &Metadata{
 		JobName: "test J0b",
 		Message: "testing message",
 		Output:  []byte("some output"),

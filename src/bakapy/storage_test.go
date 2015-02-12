@@ -48,7 +48,7 @@ func TestStorage_HandleConnection_JobFinishWordWorks(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg)
 
-	fileCh := make(chan JobMetadataFile, 20)
+	fileCh := make(chan MetadataFileEntry, 20)
 	cJob := &StorageCurrentJob{
 		TaskId:      TaskId("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"),
 		FileAddChan: fileCh,
@@ -76,7 +76,7 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg)
 
-	fileCh := make(chan JobMetadataFile, 20)
+	fileCh := make(chan MetadataFileEntry, 20)
 	cJob := &StorageCurrentJob{
 		TaskId:      TaskId("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"),
 		FileAddChan: fileCh,
@@ -118,7 +118,7 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg)
 
-	fileCh := make(chan JobMetadataFile, 20)
+	fileCh := make(chan MetadataFileEntry, 20)
 	cJob := &StorageCurrentJob{
 		TaskId:      TaskId("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"),
 		FileAddChan: fileCh,
@@ -152,7 +152,7 @@ func TestStorage_HandleConnection_MetadataSended(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg)
 
-	fileCh := make(chan JobMetadataFile, 20)
+	fileCh := make(chan MetadataFileEntry, 20)
 	cJob := &StorageCurrentJob{
 		TaskId:      TaskId("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"),
 		FileAddChan: fileCh,

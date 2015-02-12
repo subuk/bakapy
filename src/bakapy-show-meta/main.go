@@ -9,13 +9,13 @@ import (
 
 var USAGE = "Usage: bakapy-show-meta files..."
 
-type ByStartTime []*bakapy.JobMetadata
+type ByStartTime []*bakapy.Metadata
 
 func (a ByStartTime) Len() int           { return len(a) }
 func (a ByStartTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByStartTime) Less(i, j int) bool { return a[i].StartTime.Before(a[j].StartTime) }
 
-func printMetadata(metadata *bakapy.JobMetadata) {
+func printMetadata(metadata *bakapy.Metadata) {
 	fmt.Printf("==> [%s]%s\n", metadata.JobName, metadata.TaskId)
 	fmt.Println("==> Success:", metadata.Success)
 	fmt.Println("==> Command:", metadata.Command)
@@ -37,9 +37,9 @@ func main() {
 		fmt.Println(USAGE)
 		os.Exit(1)
 	}
-	var metas []*bakapy.JobMetadata
+	var metas []*bakapy.Metadata
 	for _, metaPath := range os.Args[1:] {
-		meta, err := bakapy.LoadJobMetadata(metaPath)
+		meta, err := bakapy.LoadMetadata(metaPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[warning] %s: %s\n", metaPath, err)
 			continue

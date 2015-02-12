@@ -42,13 +42,13 @@ type NotificationTemplateContext struct {
 
 type NotificationSender interface {
 	SendMail(addr string, from string, to string, msg []byte) error
-	SendFailedJobNotification(meta *JobMetadata) error
+	SendFailedJobNotification(meta *Metadata) error
 }
 
 type mailSender struct {
 	cfg    *SMTPConfig
 	send   func(string, string, string, []byte) error
-	notify func(*JobMetadata) error
+	notify func(*Metadata) error
 }
 
 func NewMailSender(cfg SMTPConfig) NotificationSender {
@@ -83,7 +83,7 @@ func (ms *mailSender) SendMail(addr string, from string, to string, msg []byte) 
 	return c.Quit()
 }
 
-func (ms *mailSender) SendFailedJobNotification(meta *JobMetadata) error {
+func (ms *mailSender) SendFailedJobNotification(meta *Metadata) error {
 	// making input data for email
 	if ms.cfg.MailTo == "" {
 		curUser, err := user.Current()

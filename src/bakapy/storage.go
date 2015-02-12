@@ -21,7 +21,7 @@ type Jober interface {
 
 type StorageCurrentJob struct {
 	TaskId      TaskId
-	FileAddChan chan JobMetadataFile
+	FileAddChan chan MetadataFileEntry
 	Namespace   string
 	Gzip        bool
 }
@@ -124,7 +124,7 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 		fileSavePath += ".gz"
 	}
 
-	fileMeta := JobMetadataFile{}
+	fileMeta := MetadataFileEntry{}
 	fileMeta.Name = filename
 	fileMeta.SourceAddr = conn.RemoteAddr().String()
 	fileMeta.StartTime = time.Now()

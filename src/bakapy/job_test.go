@@ -15,19 +15,19 @@ func (j *TestJober) WaitJob(taskId TaskId)                {}
 
 type TestJoberPushFile struct {
 	TestJober
-	ch chan JobMetadataFile
+	ch chan MetadataFileEntry
 }
 
 func (j *TestJoberPushFile) AddJob(currentJob *StorageCurrentJob) {
 	j.ch = currentJob.FileAddChan
-	f1 := JobMetadataFile{
+	f1 := MetadataFileEntry{
 		Name:       currentJob.Namespace + "/" + "wow.txt",
 		Size:       1234,
 		SourceAddr: "1.1.1.1:1234",
 		StartTime:  time.Date(2001, 10, 4, 5, 0, 0, 0, time.UTC),
 		EndTime:    time.Date(2001, 10, 4, 6, 0, 0, 0, time.UTC),
 	}
-	f2 := JobMetadataFile{
+	f2 := MetadataFileEntry{
 		Name:       currentJob.Namespace + "/" + "hello.txt",
 		Size:       12345,
 		SourceAddr: "1.1.1.1:12345",
@@ -195,7 +195,7 @@ func TestJob_Run_FailedNoSuchCommand(t *testing.T) {
 
 }
 
-func TestJob_Run_MetadataFilesAdded(t *testing.T) {
+func TestJob_Run_MetadataFileEntrysAdded(t *testing.T) {
 	executor := &TestOkExecutor{}
 	jober := &TestJoberPushFile{}
 

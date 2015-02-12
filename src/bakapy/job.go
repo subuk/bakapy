@@ -77,8 +77,8 @@ func (job *Job) getScript() ([]byte, error) {
 	return script.Bytes(), nil
 }
 
-func (job *Job) Run() *JobMetadata {
-	metadata := &JobMetadata{
+func (job *Job) Run() *Metadata {
+	metadata := &Metadata{
 		JobName:   job.Name,
 		Gzip:      job.cfg.Gzip,
 		Namespace: job.cfg.Namespace,
@@ -100,7 +100,7 @@ func (job *Job) Run() *JobMetadata {
 	}
 	metadata.Script = script
 
-	fileAddChan := make(chan JobMetadataFile, 20)
+	fileAddChan := make(chan MetadataFileEntry, 20)
 
 	job.storage.AddJob(&StorageCurrentJob{
 		Gzip:        job.cfg.Gzip,

@@ -17,7 +17,7 @@ func (stor *Storage) CleanupExpired() error {
 			return nil
 		}
 
-		metadata, err := LoadJobMetadata(metaPath)
+		metadata, err := LoadMetadata(metaPath)
 		if err != nil {
 			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
 			return nil

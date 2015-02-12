@@ -50,11 +50,11 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	f4.Close()
 	m2f, _ := ioutil.TempFile(config.MetadataDir, "")
 	m2f.Close()
-	(&JobMetadata{
+	(&Metadata{
 		TaskId:     "one",
 		Namespace:  "wow",
 		ExpireTime: time.Now().Add(threeDays),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file3.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file4.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
@@ -70,10 +70,10 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	f2.Close()
 	m1f, _ := ioutil.TempFile(config.MetadataDir, "")
 	m1f.Close()
-	(&JobMetadata{
+	(&Metadata{
 		Namespace:  "hello",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file1.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file2.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
@@ -84,10 +84,10 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	m3f, _ := ioutil.TempFile(config.MetadataDir, "")
 	m3f.Close()
-	(&JobMetadata{
+	(&Metadata{
 		Namespace:  "xxx",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file5.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file6.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},

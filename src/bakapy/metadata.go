@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type JobMetadataFile struct {
+type MetadataFileEntry struct {
 	Name       string
 	Size       int64
 	SourceAddr string
@@ -19,12 +19,12 @@ type JobMetadataFile struct {
 	EndTime    time.Time
 }
 
-func (m *JobMetadataFile) String() string {
+func (m *MetadataFileEntry) String() string {
 	return fmt.Sprintf(`{name: "%s", size: "%d", start_time: "%s", end_time: "%s"`,
 		m.Name, m.Size, m.StartTime, m.EndTime)
 }
 
-type JobMetadata struct {
+type Metadata struct {
 	JobName    string
 	Gzip       bool
 	Namespace  string
@@ -36,7 +36,7 @@ type JobMetadata struct {
 	StartTime  time.Time
 	EndTime    time.Time
 	ExpireTime time.Time
-	Files      []JobMetadataFile
+	Files      []MetadataFileEntry
 	Pid        int
 	RetCode    uint
 	Script     []byte
@@ -45,7 +45,7 @@ type JobMetadata struct {
 	Config     JobConfig
 }
 
-func (metadata *JobMetadata) Duration() time.Duration {
+func (metadata *Metadata) Duration() time.Duration {
 	if (metadata.EndTime == time.Time{}) || (metadata.StartTime == time.Time{}) {
 		return time.Duration(0)
 	}
@@ -55,14 +55,14 @@ func (metadata *JobMetadata) Duration() time.Duration {
 	return metadata.EndTime.Sub(metadata.StartTime)
 }
 
-func (metadata *JobMetadata) AvgSpeed() int64 {
+func (metadata *Metadata) AvgSpeed() int64 {
 	if int64(metadata.Duration().Seconds()) == 0 {
 		return 0
 	}
 	return metadata.TotalSize / int64(metadata.Duration().Seconds())
 }
 
-func (metadata *JobMetadata) Save(saveTo string) error {
+func (metadata *Metadata) Save(saveTo string) error {
 	err := os.MkdirAll(path.Dir(saveTo), 0750)
 	if err != nil {
 		return err
@@ -83,12 +83,12 @@ func (metadata *JobMetadata) Save(saveTo string) error {
 	return nil
 }
 
-func LoadJobMetadata(path string) (*JobMetadata, error) {
+func LoadMetadata(path string) (*Metadata, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	metadata := JobMetadata{}
+	metadata := Metadata{}
 	err = json.Unmarshal(data, &metadata)
 	if err != nil {
 		return nil, err
