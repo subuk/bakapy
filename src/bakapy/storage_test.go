@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 )
 
 type NullStorageProtocol struct {
@@ -71,6 +72,33 @@ func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 		t.Fatal("error expected")
 	}
 	expectedError := "Cannot find task id 'a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c' in current job list, closing connection"
+	if err.Error() != expectedError {
+		t.Fatal("bad error:", err)
+	}
+}
+
+func TestStorage_HandleConnection_TaskAlreadyFinished(t *testing.T) {
+	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
+	cfg := NewConfig()
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "cmd",
+		EndTime:   time.Now(),
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
+	if err != nil {
+		t.Fatal("cannot add metadata:", err)
+	}
+
+	err = storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expectedError := "task with id 'a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c' already finished, closing connection"
 	if err.Error() != expectedError {
 		t.Fatal("bad error:", err)
 	}

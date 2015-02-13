@@ -79,6 +79,10 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 		return fmt.Errorf("Cannot find task id '%s' in current job list, closing connection", taskId)
 	}
 
+	if !metadata.EndTime.IsZero() {
+		return fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
+	}
+
 	var connErr error
 	updateErr := stor.metaman.Update(taskId, func(md *Metadata) {
 
