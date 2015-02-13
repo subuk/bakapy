@@ -2,6 +2,7 @@ package bakapy
 
 import (
 	"compress/gzip"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net"
@@ -28,13 +29,73 @@ func (p *NullStorageProtocol) ReadContent(output io.Writer) (int64, error) {
 }
 func (p *NullStorageProtocol) RemoteAddr() net.Addr { return dummyAddr("1.1.1.1") }
 
+type NullStorageProtocolErrorReadTaskId struct {
+	NullStorageProtocol
+}
+
+func (p *NullStorageProtocolErrorReadTaskId) ReadTaskId() (TaskId, error) {
+	return TaskId(""), errors.New("test error")
+}
+
+type NullStorageProtocolErrorReadFilename struct {
+	NullStorageProtocol
+}
+
+func (p *NullStorageProtocolErrorReadFilename) ReadFilename() (string, error) {
+	return "", errors.New("filename test error")
+}
+
+func TestStorage_HandleConnection_TaskIdReadErr(t *testing.T) {
+	protohandle := &NullStorageProtocolErrorReadTaskId{}
+	cfg := NewConfig()
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	err := storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expectedError := "cannot read task id: test error. closing connection"
+	if err.Error() != expectedError {
+		t.Fatal("bad error:", err)
+	}
+}
+
 func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
 	cfg := NewConfig()
 	storage := NewStorage(cfg, NewTestMetaMan())
 	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
 	err := storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
 	expectedError := "Cannot find task id 'a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c' in current job list, closing connection"
+	if err.Error() != expectedError {
+		t.Fatal("bad error:", err)
+	}
+}
+
+func TestStorage_HandleConnection_FilenameReadErr(t *testing.T) {
+	protohandle := &NullStorageProtocolErrorReadFilename{NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}}
+	cfg := NewConfig()
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "cmd",
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
+	if err != nil {
+		t.Fatal("cannot add metadata:", err)
+	}
+
+	err = storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expectedError := "cannot read filename: filename test error. closing connection"
 	if err.Error() != expectedError {
 		t.Fatal("bad error:", err)
 	}
