@@ -34,7 +34,7 @@ func (stor *Storage) CleanupExpired() error {
 			stor.logger.Info("removing metadata %s", metadata.TaskId)
 			err := stor.metaman.Remove(metadata.TaskId)
 			if err != nil {
-				stor.logger.Warning("cannot metadata %s: %s", metadata.TaskId, err.Error())
+				stor.logger.Warning("cannot remove metadata %s: %s", metadata.TaskId, err.Error())
 				continue
 			}
 		}
