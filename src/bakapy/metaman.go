@@ -32,18 +32,6 @@ func NewMetaMan(cfg *Config) *MetaMan {
 	}
 }
 
-func (m *MetaMan) Keys() ([]TaskId, error) {
-	dir, err := ioutil.ReadDir(m.RootDir)
-	if err != nil {
-		return nil, err
-	}
-	var ret []TaskId
-	for _, f := range dir {
-		ret = append(ret, TaskId(f.Name()))
-	}
-	return ret, nil
-}
-
 func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 	data, err := ioutil.ReadFile(ospath.Join(m.RootDir, id.String()))
 	if err != nil {
@@ -56,14 +44,6 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 		return nil, err
 	}
 	return metadata, nil
-}
-
-func (m *MetaMan) View(id TaskId) (Metadata, error) {
-	md, err := m.get(id)
-	if err != nil {
-		return Metadata{}, err
-	}
-	return *md, err
 }
 
 func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
@@ -84,24 +64,6 @@ func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
 type viewIterItem struct {
 	metadata *Metadata
 	err      error
-}
-
-func (m *MetaMan) ViewAll() chan viewIterItem {
-	ch := make(chan viewIterItem)
-	go func() {
-		paths, err := m.Keys()
-		if err != nil {
-			ch <- viewIterItem{nil, err}
-			close(ch)
-			return
-		}
-		for _, key := range paths {
-			metadata, err := m.get(key)
-			ch <- viewIterItem{metadata, err}
-		}
-		close(ch)
-	}()
-	return ch
 }
 
 func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
@@ -135,6 +97,44 @@ func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
 		lock.Unlock()
 	}
 	return nil
+}
+
+func (m *MetaMan) Keys() ([]TaskId, error) {
+	dir, err := ioutil.ReadDir(m.RootDir)
+	if err != nil {
+		return nil, err
+	}
+	var ret []TaskId
+	for _, f := range dir {
+		ret = append(ret, TaskId(f.Name()))
+	}
+	return ret, nil
+}
+
+func (m *MetaMan) View(id TaskId) (Metadata, error) {
+	md, err := m.get(id)
+	if err != nil {
+		return Metadata{}, err
+	}
+	return *md, err
+}
+
+func (m *MetaMan) ViewAll() chan viewIterItem {
+	ch := make(chan viewIterItem)
+	go func() {
+		paths, err := m.Keys()
+		if err != nil {
+			ch <- viewIterItem{nil, err}
+			close(ch)
+			return
+		}
+		for _, key := range paths {
+			metadata, err := m.get(key)
+			ch <- viewIterItem{metadata, err}
+		}
+		close(ch)
+	}()
+	return ch
 }
 
 func (m *MetaMan) Add(jobName, namespace, command string, taskId TaskId, gzip bool, maxAge time.Duration) error {
