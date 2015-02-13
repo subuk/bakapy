@@ -2,21 +2,17 @@ package main
 
 import (
 	"bakapy"
+	"flag"
 	"fmt"
 	"os"
-	"path"
-	"sort"
+	"reflect"
 )
 
 var USAGE = "Usage: bakapy-show-meta files..."
+var CONFIG_PATH = flag.String("config", "bakapy.conf", "Bakapy configuration file")
+var ONLY_KEY = flag.String("key", "", "Show only specified key from metadata")
 
-type ByStartTime []*bakapy.Metadata
-
-func (a ByStartTime) Len() int           { return len(a) }
-func (a ByStartTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByStartTime) Less(i, j int) bool { return a[i].StartTime.Before(a[j].StartTime) }
-
-func printMetadata(metadata *bakapy.Metadata) {
+func printMetadata(metadata bakapy.Metadata) {
 	fmt.Printf("==> [%s]%s\n", metadata.JobName, metadata.TaskId)
 	fmt.Println("==> Success:", metadata.Success)
 	fmt.Println("==> Command:", metadata.Command)
@@ -34,30 +30,35 @@ func printMetadata(metadata *bakapy.Metadata) {
 }
 
 func main() {
-	if len(os.Args[1:]) == 0 {
+	flag.Parse()
+	if len(flag.Args()) == 0 {
 		fmt.Println(USAGE)
 		os.Exit(1)
 	}
 
-	var metas []*bakapy.Metadata
-	for _, metaPath := range os.Args[1:] {
-		metaman := bakapy.NewMetaMan(&bakapy.Config{MetadataDir: path.Dir(metaPath)})
-		meta, err := metaman.View(bakapy.TaskId(path.Base(metaPath)))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[warning] %s: %s\n", metaPath, err)
-			continue
+	config, err := bakapy.ParseConfig(*CONFIG_PATH)
+	if err != nil {
+		fmt.Println("Cannot read config", err)
+		os.Exit(1)
+	}
+
+	metaman := bakapy.NewMetaMan(config)
+	taskId := bakapy.TaskId(flag.Arg(0))
+
+	meta, err := metaman.View(taskId)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot load metadata: %s\n", err)
+		os.Exit(1)
+	}
+	if *ONLY_KEY != "" {
+		field := reflect.ValueOf(meta).FieldByName(*ONLY_KEY)
+		if !field.IsValid() {
+			fmt.Fprintf(os.Stderr, "Key %s not found\n", *ONLY_KEY)
+			os.Exit(1)
 		}
-		metas = append(metas, &meta)
-	}
-	if len(metas) == 0 {
-		fmt.Println("[warning] no valid metadatas found")
-		return
-	}
-
-	sort.Sort(ByStartTime(metas))
-
-	for _, m := range metas {
-		printMetadata(m)
+		fmt.Println(field.Interface())
+	} else {
+		printMetadata(meta)
 	}
 
 }
