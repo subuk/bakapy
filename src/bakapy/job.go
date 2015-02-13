@@ -106,30 +106,30 @@ func (job *Job) Run() error {
 
 	output := new(bytes.Buffer)
 	errput := new(bytes.Buffer)
-	err = job.executor.Execute(script, output, errput)
+	jobErr := job.executor.Execute(script, output, errput)
 
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
 
-	job.metaman.Update(job.TaskId, func(md *Metadata) {
-		md.Output = output.Bytes()
-		md.Errput = errput.Bytes()
-	})
-
-	if err != nil {
-		job.logger.Warning("command failed: %s", err)
-		job.metaman.Update(job.TaskId, func(md *Metadata) {
+	if jobErr != nil {
+		mdErr := job.metaman.Update(job.TaskId, func(md *Metadata) {
 			md.Success = false
-			md.Message = err.Error()
+			md.Message = jobErr.Error()
 			md.EndTime = time.Now().UTC()
+			md.Output = output.Bytes()
+			md.Errput = errput.Bytes()
 		})
-		return err
+		if mdErr != nil {
+			jobErr = fmt.Errorf("cannot save metadata %s. %s.", mdErr, jobErr)
+		}
+		return jobErr
 	}
 
-	job.metaman.Update(job.TaskId, func(md *Metadata) {
+	return job.metaman.Update(job.TaskId, func(md *Metadata) {
 		md.Success = true
 		md.Message = "OK"
 		md.EndTime = time.Now().UTC()
+		md.Output = output.Bytes()
+		md.Errput = errput.Bytes()
 	})
-	return nil
 }

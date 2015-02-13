@@ -140,11 +140,7 @@ func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
 		return err
 	}
 	up(md)
-	err = m.save(id, md)
-	if err != nil {
-		panic(err)
-	}
-	return nil
+	return m.save(id, md)
 }
 
 func (m *MetaMan) Remove(id TaskId) error {
