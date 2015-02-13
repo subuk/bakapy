@@ -21,36 +21,6 @@ func (e *TestFailExecutor) Execute(script []byte, output io.Writer, errput io.Wr
 	return errors.New("Oops")
 }
 
-func TestJob_Run_MetadataFieldSetted(t *testing.T) {
-	executor := &TestOkExecutor{}
-	cfg := &JobConfig{Command: "utils.go"}
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal("cannot create temp dir:", err)
-	}
-	gcfg := &Config{MetadataDir: tmpdir}
-	metaman := NewMetaMan(gcfg)
-	defer os.RemoveAll(gcfg.MetadataDir)
-	job := NewJob(
-		"test", cfg, "127.0.0.1:9999",
-		".", executor, metaman,
-	)
-
-	err = job.Run()
-	if err != nil {
-		t.Fatal("unexpected error", err)
-	}
-
-	m, err := metaman.View(job.TaskId)
-	if err != nil {
-		t.Fatal("cannot get job metadata:", err)
-	}
-	if !m.Success {
-		t.Fatal("m.Success must be true")
-	}
-
-}
-
 func TestJob_Run_ExecutionOkMetadataSetted(t *testing.T) {
 	now := time.Now()
 	executor := &TestOkExecutor{}
@@ -127,7 +97,7 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 	gcfg := &Config{MetadataDir: tmpdir}
 	metaman := NewMetaMan(gcfg)
 	defer os.RemoveAll(gcfg.MetadataDir)
-	cfg := &JobConfig{Command: "utils.go", Namespace: "wow/fail", Gzip: false, MaxAge: maxAge}
+	cfg := &JobConfig{Command: "utils.go", Namespace: "wow/fail", Gzip: true, MaxAge: maxAge}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
 		".", executor, metaman,
@@ -144,8 +114,8 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 	if m.Success {
 		t.Fatal("m.Success must be false")
 	}
-	if m.Gzip {
-		t.Fatal("m.Gzip must be false")
+	if !m.Gzip {
+		t.Fatal("m.Gzip must be true")
 	}
 	if m.Message != "Oops" {
 		t.Fatalf("m.Message must be 'Oops' not '%s'", m.Message)
@@ -203,4 +173,21 @@ func TestJob_Run_FailedNoSuchCommand(t *testing.T) {
 		t.Fatalf("bad m.Message: %s", m.Message)
 	}
 
+}
+
+func TestJob_Run_FailedCannotAddMetadata(t *testing.T) {
+	executor := &TestOkExecutor{}
+	gcfg := &Config{MetadataDir: "/DOES_NOT_EXIST"}
+	metaman := NewMetaMan(gcfg)
+	defer os.RemoveAll(gcfg.MetadataDir)
+	cfg := &JobConfig{}
+	job := NewJob(
+		"test_fail", cfg, "127.0.0.1:9999",
+		".", executor, metaman,
+	)
+
+	err := job.Run()
+	if err.Error() == "wow" {
+		t.Fatal("bad err", err)
+	}
 }
