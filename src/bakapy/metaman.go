@@ -20,6 +20,7 @@ type MetaManager interface {
 }
 
 type MetaMan struct {
+	sync.Mutex
 	RootDir string
 	taken   map[TaskId]*sync.Mutex
 }
@@ -49,7 +50,9 @@ func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
 	lock, exist := m.taken[id]
 	if !exist {
 		lock = new(sync.Mutex)
+		m.Lock()
 		m.taken[id] = lock
+		m.Unlock()
 	}
 	lock.Lock()
 	data, err := m.get(id)
