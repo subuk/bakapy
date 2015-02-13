@@ -76,13 +76,3 @@ func TestMetadataAvgSpeed_ZeroDuration(t *testing.T) {
 		t.Fatal("duration must be 0, not", s)
 	}
 }
-
-// func TestMetadataSaveTo_Ok(t *testing.T) {
-// 	meta := Metadata{
-// 		TotalSize: 102 * 1024 * 1024,
-// 	}
-// 	err := meta.Save("/dev/null")
-// 	if err != nil {
-// 		t.Fatal("Cannot save metadata:", err)
-// 	}
-// }

@@ -36,5 +36,12 @@ func main() {
 	}
 
 	storage.Start()
-	bakapy.RunJob(jobName, jobConfig, config, metaman)
+
+	executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
+	job := bakapy.NewJob(jobName, jobConfig, config.Listen, config.CommandDir, executor, metaman)
+	if err := job.Run(); err != nil {
+		fmt.Printf("Job failed:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Job finished")
 }
