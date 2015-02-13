@@ -79,14 +79,12 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 
 	metadata, err := stor.metaman.View(taskId)
 	if err != nil {
-		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
-		return errors.New(msg)
+		return fmt.Errorf("Cannot find task id '%s' in current job list, closing connection", taskId)
 	}
 
 	filename, err := conn.ReadFilename()
 	if err != nil {
-		msg := fmt.Sprintf("cannot read filename: %s. closing connection", err)
-		return errors.New(msg)
+		return fmt.Errorf("cannot read filename: %s. closing connection", err)
 	}
 
 	if filename == JOB_FINISH {
@@ -112,8 +110,7 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 	stor.logger.Info("saving file %s", fileSavePath)
 	err = os.MkdirAll(path.Dir(fileSavePath), 0750)
 	if err != nil {
-		msg := fmt.Sprintf("cannot create file folder: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("cannot create file folder: %s", err)
 	}
 
 	fd, err := os.Create(fileSavePath)
@@ -134,8 +131,7 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 	stream := bufio.NewWriter(file)
 	written, err := conn.ReadContent(stream)
 	if err != nil {
-		msg := fmt.Sprintf("cannot save file: %s. closing connection", err)
-		return errors.New(msg)
+		return fmt.Errorf("cannot save file: %s. closing connection", err)
 	}
 
 	stream.Flush()
