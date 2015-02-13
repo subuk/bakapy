@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/op/go-logging"
 	"io"
 	"io/ioutil"
 	"os"
@@ -23,12 +24,14 @@ type MetaMan struct {
 	sync.Mutex
 	RootDir string
 	taken   map[TaskId]*sync.Mutex
+	logger  *logging.Logger
 }
 
 func NewMetaMan(cfg *Config) *MetaMan {
 	return &MetaMan{
 		RootDir: cfg.MetadataDir,
 		taken:   make(map[TaskId]*sync.Mutex),
+		logger:  logging.MustGetLogger("bakapy.metaman"),
 	}
 }
 
@@ -47,6 +50,7 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 }
 
 func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
+	m.logger.Debug("getting for update metadata for task id %s", id)
 	lock, exist := m.taken[id]
 	if !exist {
 		lock = new(sync.Mutex)
@@ -69,9 +73,9 @@ type viewIterItem struct {
 }
 
 func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
-
 	saveTo := ospath.Join(m.RootDir, id.String())
 	saveToTmp := saveTo + ".inpr"
+	m.logger.Debug("saving metadata for task id %s to %s", id, saveTo)
 
 	err := os.MkdirAll(ospath.Dir(saveTo), 0750)
 	if err != nil {
@@ -125,6 +129,7 @@ func (m *MetaMan) View(id TaskId) (Metadata, error) {
 }
 
 func (m *MetaMan) Add(id TaskId, md Metadata) error {
+	m.logger.Debug("adding metadata for task id %s", id)
 	md.TaskId = id
 	return m.save(id, &md)
 }
