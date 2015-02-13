@@ -1,3 +1,6 @@
 #!/bin/bash
 
-rm -rf storage/* metadata/*
+rm -f storage/smoke/test_large.bin
+rm -f storage/smoke/test1.txt
+rmdir storage/smoke
+rm -f metadata/8732d71b-077e-49ed-9222-b1177280de1e
