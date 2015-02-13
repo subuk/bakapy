@@ -50,7 +50,12 @@ func TestStorage_HandleConnection_JobFinishWordWorks(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
 	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	err := storage.metaman.Add("testjob", "test/wow", "cmd", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", true, 10000)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "cmd",
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
 	if err != nil {
 		t.Fatal("cannot add metadata:", err)
 	}
@@ -74,8 +79,13 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
 	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-
-	err := storage.metaman.Add("testjob", "test/wow", "xxx", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", true, 10000)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "xxx",
+		Gzip:      true,
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
 	if err != nil {
 		t.Fatal("cannot add metadata:", err)
 	}
@@ -115,8 +125,13 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 	defer os.RemoveAll(cfg.StorageDir)
 	storage := NewStorage(cfg, NewTestMetaMan())
 	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-
-	err := storage.metaman.Add("testjob", "test/wow", "xxx", "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", false, 10000)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "xxx",
+		Gzip:      false,
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
 	if err != nil {
 		t.Fatal("cannot add metadata:", err)
 	}

@@ -12,7 +12,12 @@ var ADDOK_EXPECTED_CONTENT = []byte(`{"JobName":"test","Gzip":false,"Namespace":
 func TestMetaMan_AddOk(t *testing.T) {
 	mm := NewTestMetaMan()
 	defer os.RemoveAll(mm.(*MetaMan).RootDir)
-	err := mm.Add("test", "ns", "cmd", "123", false, 1000)
+	md := Metadata{
+		JobName:   "test",
+		Namespace: "ns",
+		Command:   "cmd",
+	}
+	err := mm.Add("123", md)
 	content, err := ioutil.ReadFile(mm.(*MetaMan).RootDir + "/123")
 	if err != nil {
 		t.Fatal("cannot add test entry:", err)

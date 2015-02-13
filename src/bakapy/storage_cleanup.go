@@ -7,11 +7,8 @@ import (
 )
 
 func (stor *Storage) CleanupExpired() error {
-	for i := range stor.metaman.ViewAll() {
-
-		metadata := i.metadata
-		err := i.err
-
+	for taskId := range stor.metaman.Keys() {
+		metadata, err := stor.metaman.View(taskId)
 		if err != nil {
 			stor.logger.Warning("error reading metadata file: %s", err.Error())
 			continue

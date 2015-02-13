@@ -83,14 +83,15 @@ func (job *Job) getScript() ([]byte, error) {
 
 func (job *Job) Run() error {
 	job.logger.Info("starting up")
-	err := job.metaman.Add(
-		job.Name,
-		job.cfg.Namespace,
-		job.cfg.Command,
-		job.TaskId,
-		job.cfg.Gzip,
-		job.cfg.MaxAge,
-	)
+	now := time.Now().UTC()
+	err := job.metaman.Add(job.TaskId, Metadata{
+		JobName:    job.Name,
+		Gzip:       job.cfg.Gzip,
+		Namespace:  job.cfg.Namespace,
+		Command:    job.cfg.Command,
+		StartTime:  now,
+		ExpireTime: now.Add(job.cfg.MaxAge),
+	})
 	if err != nil {
 		return fmt.Errorf("cannot add metadata: %s", err)
 	}

@@ -3,19 +3,18 @@ package bakapy
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	ospath "path"
 	"sync"
-	"time"
 )
 
 type MetaManager interface {
-	Keys() ([]TaskId, error)
+	Keys() chan TaskId
 	View(id TaskId) (Metadata, error)
-	ViewAll() chan viewIterItem
-	Add(jobName, namespace, command string, taskId TaskId, gzip bool, maxAge time.Duration) error
+	Add(id TaskId, md Metadata) error
 	Update(id TaskId, up func(m *Metadata)) error
 	Remove(id TaskId) error
 }
@@ -99,16 +98,19 @@ func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
 	return nil
 }
 
-func (m *MetaMan) Keys() ([]TaskId, error) {
+func (m *MetaMan) Keys() chan TaskId {
 	dir, err := ioutil.ReadDir(m.RootDir)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("cannot list metadata directory: %s", err))
 	}
-	var ret []TaskId
-	for _, f := range dir {
-		ret = append(ret, TaskId(f.Name()))
-	}
-	return ret, nil
+	ch := make(chan TaskId, 100)
+	go func() {
+		for _, f := range dir {
+			ch <- TaskId(f.Name())
+		}
+		close(ch)
+	}()
+	return ch
 }
 
 func (m *MetaMan) View(id TaskId) (Metadata, error) {
@@ -119,36 +121,9 @@ func (m *MetaMan) View(id TaskId) (Metadata, error) {
 	return *md, err
 }
 
-func (m *MetaMan) ViewAll() chan viewIterItem {
-	ch := make(chan viewIterItem)
-	go func() {
-		paths, err := m.Keys()
-		if err != nil {
-			ch <- viewIterItem{nil, err}
-			close(ch)
-			return
-		}
-		for _, key := range paths {
-			metadata, err := m.get(key)
-			ch <- viewIterItem{metadata, err}
-		}
-		close(ch)
-	}()
-	return ch
-}
-
-func (m *MetaMan) Add(jobName, namespace, command string, taskId TaskId, gzip bool, maxAge time.Duration) error {
-	now := time.Now().UTC()
-	metadata := &Metadata{
-		TaskId:     taskId,
-		JobName:    jobName,
-		Gzip:       gzip,
-		Namespace:  namespace,
-		Command:    command,
-		StartTime:  now,
-		ExpireTime: now.Add(maxAge),
-	}
-	return m.save(taskId, metadata)
+func (m *MetaMan) Add(id TaskId, md Metadata) error {
+	md.TaskId = id
+	return m.save(id, &md)
 }
 
 func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
