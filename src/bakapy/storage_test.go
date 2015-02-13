@@ -16,6 +16,7 @@ type NullStorageProtocol struct {
 	filename          string
 	content           []byte
 	taskId            string
+	readContentErr    error
 }
 
 func (p *NullStorageProtocol) ReadTaskId() (TaskId, error) {
@@ -25,7 +26,7 @@ func (p *NullStorageProtocol) ReadFilename() (string, error) { return p.filename
 func (p *NullStorageProtocol) ReadContent(output io.Writer) (int64, error) {
 	p.readContentCalled = true
 	output.Write(p.content)
-	return int64(len(p.content)), nil
+	return int64(len(p.content)), p.readContentErr
 }
 func (p *NullStorageProtocol) RemoteAddr() net.Addr { return dummyAddr("1.1.1.1") }
 
@@ -210,5 +211,110 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 
 	if string(fileContent) != "test_ungz_content" {
 		t.Fatal("unexpected file content", string(fileContent))
+	}
+}
+
+func TestStorage_HandleConnection_DestDirsMakeFailed(t *testing.T) {
+	protohandle := &NullStorageProtocol{
+		taskId:   "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
+		filename: "world.txt",
+	}
+	cfg := NewConfig()
+	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(cfg.StorageDir)
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "xxx",
+		Gzip:      false,
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
+	if err != nil {
+		t.Fatal("cannot add metadata:", err)
+	}
+
+	f, err := os.Create(storage.RootDir + "/test")
+	if err != nil {
+		t.Fatal("cannot create test file:", err)
+	}
+	f.Close()
+
+	err = storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expected := "cannot create file folder: mkdir " + storage.RootDir + "/test: not a directory"
+	if err.Error() != expected {
+		t.Fatal("bad err", err)
+	}
+}
+
+func TestStorage_HandleConnection_DestFileOpenFailed(t *testing.T) {
+	protohandle := &NullStorageProtocol{
+		taskId:   "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
+		filename: "world.txt",
+	}
+	cfg := NewConfig()
+	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(cfg.StorageDir)
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "xxx",
+		Gzip:      false,
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
+	if err != nil {
+		t.Fatal("cannot add metadata:", err)
+	}
+
+	err = os.MkdirAll(storage.RootDir+"/test/wow/world.txt", 0755)
+	if err != nil {
+		t.Fatal("cannot create test file:", err)
+	}
+
+	err = storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expected := "cannot open file: open " + storage.RootDir + "/test/wow/world.txt: is a directory"
+	if err.Error() != expected {
+		t.Fatal("bad err", err)
+	}
+}
+
+func TestStorage_HandleConnection_ReadContentFailed(t *testing.T) {
+	protohandle := &NullStorageProtocol{
+		taskId:         "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
+		filename:       "world.txt",
+		readContentErr: errors.New("test err"),
+	}
+	cfg := NewConfig()
+	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(cfg.StorageDir)
+	storage := NewStorage(cfg, NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	md := Metadata{
+		JobName:   "testjob",
+		Namespace: "test/wow",
+		Command:   "xxx",
+		Gzip:      false,
+	}
+	err := storage.metaman.Add("a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c", md)
+	if err != nil {
+		t.Fatal("cannot add metadata:", err)
+	}
+
+	err = storage.HandleConnection(protohandle)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	expected := "cannot save file: test err. closing connection"
+	if err.Error() != expected {
+		t.Fatal("bad err", err)
 	}
 }
