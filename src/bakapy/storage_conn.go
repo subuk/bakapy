@@ -25,9 +25,8 @@ type StorageProtocolHandler interface {
 
 type StorageConn struct {
 	RemoteReader
-	currentJob StorageCurrentJob
-	logger     *logging.Logger
-	State      StorageConnState
+	logger *logging.Logger
+	State  StorageConnState
 }
 
 func NewStorageConn(rReader RemoteReader, logger *logging.Logger) *StorageConn {

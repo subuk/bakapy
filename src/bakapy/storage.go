@@ -13,17 +13,9 @@ import (
 	"time"
 )
 
-type StorageCurrentJob struct {
-	TaskId      TaskId
-	FileAddChan chan MetadataFileEntry
-	Namespace   string
-	Gzip        bool
-}
-
 type Storage struct {
 	RootDir     string
 	metaman     MetaManager
-	currentJobs map[TaskId]StorageCurrentJob
 	listenAddr  string
 	connections chan *StorageConn
 	logger      *logging.Logger
@@ -32,7 +24,6 @@ type Storage struct {
 func NewStorage(cfg *Config, metaman MetaManager) *Storage {
 	return &Storage{
 		RootDir:     cfg.StorageDir,
-		currentJobs: make(map[TaskId]StorageCurrentJob),
 		connections: make(chan *StorageConn),
 		listenAddr:  cfg.Listen,
 		metaman:     metaman,
