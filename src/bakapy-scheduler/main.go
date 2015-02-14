@@ -33,7 +33,11 @@ func main() {
 
 	metaman := bakapy.NewMetaMan(config)
 	storage := bakapy.NewStorage(config, metaman)
-	sender := bakapy.NewMailSender(config.SMTP)
+	var notificators []bakapy.Notificator
+	for _, ncConfig := range config.Notificators {
+		nc := bakapy.NewScriptedNotificator(config.CommandDir, ncConfig.Name, ncConfig.Params)
+		notificators = append(notificators, nc)
+	}
 
 	scheduler := cron.New()
 	for jobName, jobConfig := range config.Jobs {
@@ -55,16 +59,22 @@ func main() {
 				)
 				err := job.Run()
 				if err != nil {
-					logger.Critical("Job %s failed: %s", job.TaskId, err)
-					md, err := metaman.View(job.TaskId)
-					if err != nil {
-						logger.Critical("Cannot get metadata for finished job: %s", err)
-						return
-					}
-					if err := sender.SendFailedJobNotification(&md); err != nil {
-						logger.Critical("cannot send failed job notification: %s", err)
-					}
+					logger.Warning("job %s failed: %s", jobName, err)
+				}
+				md, err := metaman.View(job.TaskId)
 
+				if err != nil {
+					logger.Critical("cannot get metadata for finished job: %s", err)
+					return
+				}
+
+				for _, nc := range notificators {
+					logger.Debug("executing %s notificator", nc.Name())
+					if err := nc.JobFinished(md); err != nil {
+						logger.Warning("failed to execute %s notificator: %s", nc.Name(), err)
+					} else {
+						logger.Debug("notificator %s finished successfully", nc.Name())
+					}
 				}
 			})
 		}(jobName, jobConfig, config, storage)

@@ -11,20 +11,18 @@ import (
 )
 
 type Config struct {
-	IncludeJobs []string `yaml:"include_jobs"`
-	Listen      string
-	StorageDir  string     `yaml:"storage_dir"`
-	MetadataDir string     `yaml:"metadata_dir"`
-	CommandDir  string     `yaml:"command_dir"`
-	SMTP        SMTPConfig `yaml:"smtp"`
-	Jobs        map[string]*JobConfig
+	IncludeJobs  []string `yaml:"include_jobs"`
+	Listen       string
+	StorageDir   string `yaml:"storage_dir"`
+	MetadataDir  string `yaml:"metadata_dir"`
+	CommandDir   string `yaml:"command_dir"`
+	Notificators []NotificatorConfig
+	Jobs         map[string]*JobConfig
 }
 
-type SMTPConfig struct {
-	Host     string
-	Port     int
-	MailFrom string
-	MailTo   string
+type NotificatorConfig struct {
+	Name   string
+	Params map[string]string
 }
 
 func (cfg *Config) PrettyFmt() []byte {
