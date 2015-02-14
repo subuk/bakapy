@@ -36,7 +36,8 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	config.StorageDir, _ = ioutil.TempDir("", "")
 	defer os.RemoveAll(config.MetadataDir)
 	defer os.RemoveAll(config.StorageDir)
-	storage := NewStorage(config)
+	metaman := NewMetaMan(config)
+	storage := NewStorage(config, metaman)
 	os.MkdirAll(config.StorageDir+"/some_empty_dir", 0755)
 	os.MkdirAll(config.StorageDir+"/some_restricted_dir", 0000)
 
@@ -48,17 +49,14 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	f3.Close()
 	f4, _ := os.Create(config.StorageDir + "/wow/file4.txt")
 	f4.Close()
-	m2f, _ := ioutil.TempFile(config.MetadataDir, "")
-	m2f.Close()
-	(&JobMetadata{
-		TaskId:     "one",
+	metaman.Add("one", Metadata{
 		Namespace:  "wow",
 		ExpireTime: time.Now().Add(threeDays),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file3.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file4.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
-	}).Save(m2f.Name())
+	})
 
 	//
 	// Expired backup
@@ -68,36 +66,32 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	f1.Close()
 	f2, _ := os.Create(config.StorageDir + "/hello/file2.txt")
 	f2.Close()
-	m1f, _ := ioutil.TempFile(config.MetadataDir, "")
-	m1f.Close()
-	(&JobMetadata{
+	metaman.Add("expired", Metadata{
 		Namespace:  "hello",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file1.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file2.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
-	}).Save(m1f.Name())
+	})
 
 	//
 	// Expired metadata with files deleted manually
 	//
-	m3f, _ := ioutil.TempFile(config.MetadataDir, "")
-	m3f.Close()
-	(&JobMetadata{
+	metaman.Add("expired-broken", Metadata{
 		Namespace:  "xxx",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []JobMetadataFile{
+		Files: []MetadataFileEntry{
 			{"file5.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file6.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
-	}).Save(m3f.Name())
+	})
 
 	//
 	// And one corrupt metadata file
 	//
-	m4f_corrupt, _ := ioutil.TempFile(config.MetadataDir, "")
-	m4f_corrupt.Write([]byte("{,wow'';'''"))
+	mdf_corrupt, _ := ioutil.TempFile(config.MetadataDir, "")
+	mdf_corrupt.Write([]byte("{,wow'';'''"))
 
 	//
 	// After storage cleanup we does not expect any errors
@@ -110,7 +104,7 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expect corrupt metadata file still exist
 	//
-	_, err = os.Stat(m4f_corrupt.Name())
+	_, err = os.Stat(mdf_corrupt.Name())
 	if err != nil {
 		t.Fatal("cannot stat corrupt metadata file:", err)
 	}
@@ -118,7 +112,8 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expect expired metadata file with manually deleted files still present
 	//
-	_, err = os.Stat(m3f.Name())
+
+	_, err = metaman.View("expired-broken")
 	if err != nil {
 		t.Fatal("cannot stat expired metadata file without data files:", err)
 	}
@@ -126,7 +121,7 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expect expired backup removed (with metadata and files)
 	//
-	_, err = os.Stat(m1f.Name())
+	_, err = metaman.View("expired")
 	if err == nil {
 		t.Fatal("expired metadata file still present")
 	}
@@ -142,7 +137,7 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expect active backup still present
 	//
-	_, err = os.Stat(m2f.Name())
+	_, err = metaman.View("one")
 	if err != nil {
 		t.Fatal("cannot stat active backup metadata file", err)
 	}

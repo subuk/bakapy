@@ -3,7 +3,6 @@ package bakapy
 import (
 	"bufio"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"github.com/op/go-logging"
 	"io"
@@ -13,38 +12,21 @@ import (
 	"time"
 )
 
-type Jober interface {
-	AddJob(currentJob *StorageCurrentJob)
-	RemoveJob(id TaskId)
-	WaitJob(taskId TaskId)
-}
-
-type StorageCurrentJob struct {
-	TaskId      TaskId
-	FileAddChan chan JobMetadataFile
-	Namespace   string
-	Gzip        bool
-}
-
 type Storage struct {
-	*StorageJobManager
 	RootDir     string
-	MetadataDir string
-	currentJobs map[TaskId]StorageCurrentJob
+	metaman     MetaManager
 	listenAddr  string
 	connections chan *StorageConn
 	logger      *logging.Logger
 }
 
-func NewStorage(cfg *Config) *Storage {
+func NewStorage(cfg *Config, metaman MetaManager) *Storage {
 	return &Storage{
-		StorageJobManager: NewStorageJobManager(),
-		MetadataDir:       cfg.MetadataDir,
-		RootDir:           cfg.StorageDir,
-		currentJobs:       make(map[TaskId]StorageCurrentJob),
-		connections:       make(chan *StorageConn),
-		listenAddr:        cfg.Listen,
-		logger:            logging.MustGetLogger("bakapy.storage"),
+		RootDir:     cfg.StorageDir,
+		connections: make(chan *StorageConn),
+		listenAddr:  cfg.Listen,
+		metaman:     metaman,
+		logger:      logging.MustGetLogger("bakapy.storage"),
 	}
 }
 
@@ -90,83 +72,89 @@ func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
 
 	taskId, err := conn.ReadTaskId()
 	if err != nil {
-		msg := fmt.Sprintf("cannot read task id: %s. closing connection", err)
-		return errors.New(msg)
+		return fmt.Errorf("cannot read task id: %s. closing connection", err)
 	}
-
-	currentJob, exist := stor.GetJob(taskId)
-	if !exist {
-		msg := fmt.Sprintf("Cannot find task id '%s' in current job list, closing connection", taskId)
-		return errors.New(msg)
-	}
-
-	stor.AddConnection(taskId)
-	defer stor.RemoveConnection(taskId)
-
-	filename, err := conn.ReadFilename()
+	metadata, err := stor.metaman.View(taskId)
 	if err != nil {
-		msg := fmt.Sprintf("cannot read filename: %s. closing connection", err)
-		return errors.New(msg)
+		return fmt.Errorf("Cannot find task id '%s' in current job list, closing connection", taskId)
 	}
 
-	if filename == JOB_FINISH {
-		stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
-		return nil
+	if !metadata.EndTime.IsZero() {
+		return fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
 	}
 
-	fileSavePath := path.Join(
-		stor.RootDir,
-		currentJob.Namespace,
-		filename,
-	)
+	var connErr error
+	updateErr := stor.metaman.Update(taskId, func(md *Metadata) {
 
-	if currentJob.Gzip {
-		fileSavePath += ".gz"
+		filename, err := conn.ReadFilename()
+		if err != nil {
+			connErr = fmt.Errorf("cannot read filename: %s. closing connection", err)
+			return
+		}
+
+		if filename == JOB_FINISH {
+			stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
+			return
+		}
+
+		fileSavePath := path.Join(
+			stor.RootDir,
+			metadata.Namespace,
+			filename,
+		)
+
+		if metadata.Gzip {
+			fileSavePath += ".gz"
+		}
+
+		fileMeta := MetadataFileEntry{}
+		fileMeta.Name = filename
+		fileMeta.SourceAddr = conn.RemoteAddr().String()
+		fileMeta.StartTime = time.Now()
+
+		stor.logger.Info("saving file %s", fileSavePath)
+		err = os.MkdirAll(path.Dir(fileSavePath), 0750)
+		if err != nil {
+			connErr = fmt.Errorf("cannot create file folder: %s", err)
+			return
+		}
+
+		fd, err := os.Create(fileSavePath)
+		if err != nil {
+			connErr = fmt.Errorf("cannot open file: %s", err)
+			return
+		}
+
+		var file io.WriteCloser
+		var gzWriter io.WriteCloser
+		if metadata.Gzip {
+			gzWriter = gzip.NewWriter(fd)
+			file = gzWriter
+		} else {
+			file = fd
+		}
+
+		stream := bufio.NewWriter(file)
+		written, err := conn.ReadContent(stream)
+		if err != nil {
+			connErr = fmt.Errorf("cannot save file: %s. closing connection", err)
+			return
+		}
+
+		stream.Flush()
+		if metadata.Gzip {
+			gzWriter.Close()
+		}
+		fd.Close()
+
+		stor.logger.Debug("adding file %s to metadata", fileMeta.Name)
+		fileMeta.Size = written
+		fileMeta.EndTime = time.Now()
+
+		md.Files = append(md.Files, fileMeta)
+	})
+	if updateErr != nil {
+		stor.logger.Critical("cannot save metadata: %s", updateErr.Error())
 	}
-
-	fileMeta := JobMetadataFile{}
-	fileMeta.Name = filename
-	fileMeta.SourceAddr = conn.RemoteAddr().String()
-	fileMeta.StartTime = time.Now()
-
-	stor.logger.Info("saving file %s", fileSavePath)
-	err = os.MkdirAll(path.Dir(fileSavePath), 0750)
-	if err != nil {
-		msg := fmt.Sprintf("cannot create file folder: %s", err)
-		return errors.New(msg)
-	}
-
-	fd, err := os.Create(fileSavePath)
-	if err != nil {
-		msg := fmt.Sprintf("cannot open file: %s", err)
-		return errors.New(msg)
-	}
-
-	var file io.WriteCloser
-	var gzWriter io.WriteCloser
-	if currentJob.Gzip {
-		gzWriter = gzip.NewWriter(fd)
-		file = gzWriter
-	} else {
-		file = fd
-	}
-
-	stream := bufio.NewWriter(file)
-	written, err := conn.ReadContent(stream)
-	if err != nil {
-		msg := fmt.Sprintf("cannot save file: %s. closing connection", err)
-		return errors.New(msg)
-	}
-
-	stream.Flush()
-	if currentJob.Gzip {
-		gzWriter.Close()
-	}
-	fd.Close()
-
-	stor.logger.Debug("sending metadata for file %s to job runner", fileMeta.Name)
-	fileMeta.Size = written
-	fileMeta.EndTime = time.Now()
-	currentJob.FileAddChan <- fileMeta
-	return nil
+	return connErr
 }

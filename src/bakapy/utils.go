@@ -8,7 +8,6 @@ import (
 	"net/smtp"
 	"os"
 	"os/user"
-	"path"
 	"strings"
 )
 
@@ -42,13 +41,13 @@ type NotificationTemplateContext struct {
 
 type NotificationSender interface {
 	SendMail(addr string, from string, to string, msg []byte) error
-	SendFailedJobNotification(meta *JobMetadata) error
+	SendFailedJobNotification(meta *Metadata) error
 }
 
 type mailSender struct {
 	cfg    *SMTPConfig
 	send   func(string, string, string, []byte) error
-	notify func(*JobMetadata) error
+	notify func(*Metadata) error
 }
 
 func NewMailSender(cfg SMTPConfig) NotificationSender {
@@ -83,7 +82,7 @@ func (ms *mailSender) SendMail(addr string, from string, to string, msg []byte) 
 	return c.Quit()
 }
 
-func (ms *mailSender) SendFailedJobNotification(meta *JobMetadata) error {
+func (ms *mailSender) SendFailedJobNotification(meta *Metadata) error {
 	// making input data for email
 	if ms.cfg.MailTo == "" {
 		curUser, err := user.Current()
@@ -129,35 +128,4 @@ func (ms *mailSender) SendFailedJobNotification(meta *JobMetadata) error {
 		return err
 	}
 	return nil
-}
-
-func RunJob(jobName string, jConfig *JobConfig, gConfig *Config, storage *Storage) string {
-	logger := logging.MustGetLogger("bakapy.job")
-	executor := jConfig.executor
-	if executor == nil {
-		executor = NewBashExecutor(jConfig.Args, jConfig.Host, jConfig.Port, jConfig.Sudo)
-	}
-	job := NewJob(
-		jobName, jConfig, gConfig.Listen,
-		gConfig.CommandDir, storage, executor,
-	)
-	metadata := job.Run()
-	saveTo := path.Join(gConfig.MetadataDir, string(metadata.TaskId))
-	err := metadata.Save(saveTo)
-	if err != nil {
-		logger.Critical("cannot save metadata: %s", err)
-	}
-	logger.Info("metadata for job %s successfully saved to %s", metadata.TaskId, saveTo)
-	if !metadata.Success {
-		logger.Debug("sending failed job notification to current user")
-		sender := NewMailSender(gConfig.SMTP)
-		if err := sender.SendFailedJobNotification(metadata); err != nil {
-			logger.Critical("cannot send failed job notification: %s", err.Error())
-		}
-
-		logger.Critical("job '%s' failed", job.Name)
-	} else {
-		logger.Info("job '%s' finished", job.Name)
-	}
-	return saveTo
 }

@@ -3,27 +3,18 @@ package bakapy
 import (
 	"os"
 	"path"
-	"path/filepath"
 	"time"
 )
 
 func (stor *Storage) CleanupExpired() error {
-	visit := func(metaPath string, f os.FileInfo, err error) error {
+	for taskId := range stor.metaman.Keys() {
+		metadata, err := stor.metaman.View(taskId)
 		if err != nil {
-			return err
-		}
-
-		if f.IsDir() {
-			return nil
-		}
-
-		metadata, err := LoadJobMetadata(metaPath)
-		if err != nil {
-			stor.logger.Warning("corrupt metadata file %s: %s", metaPath, err.Error())
-			return nil
+			stor.logger.Warning("error reading metadata file: %s", err.Error())
+			continue
 		}
 		if metadata.ExpireTime.After(time.Now()) {
-			return nil
+			continue
 		}
 
 		stor.logger.Info("removing files for expired task %s(%s)",
@@ -40,15 +31,13 @@ func (stor *Storage) CleanupExpired() error {
 			}
 		}
 		if !removeErrs {
-			stor.logger.Info("removing metadata %s", metaPath)
-			err = os.Remove(metaPath)
+			stor.logger.Info("removing metadata %s", metadata.TaskId)
+			err := stor.metaman.Remove(metadata.TaskId)
 			if err != nil {
-				stor.logger.Warning("cannot remove file %s: %s", metaPath, err.Error())
-				return nil
+				stor.logger.Warning("cannot remove metadata %s: %s", metadata.TaskId, err.Error())
+				continue
 			}
 		}
-		return nil
 	}
-
-	return filepath.Walk(stor.MetadataDir, visit)
+	return nil
 }

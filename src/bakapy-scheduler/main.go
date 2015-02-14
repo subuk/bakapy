@@ -31,7 +31,9 @@ func main() {
 
 	logger.Debug(string(config.PrettyFmt()))
 
-	storage := bakapy.NewStorage(config)
+	metaman := bakapy.NewMetaMan(config)
+	storage := bakapy.NewStorage(config, metaman)
+	sender := bakapy.NewMailSender(config.SMTP)
 
 	scheduler := cron.New()
 	for jobName, jobConfig := range config.Jobs {
@@ -45,7 +47,25 @@ func main() {
 		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config, storage *bakapy.Storage) {
 			scheduler.AddFunc(runSpec, func() {
 				logger.Critical("Starting job %s", jobName)
-				bakapy.RunJob(jobName, jobConfig, config, storage)
+				executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
+				job := bakapy.NewJob(
+					jobName, jobConfig, config.Listen,
+					config.CommandDir, executor,
+					metaman,
+				)
+				err := job.Run()
+				if err != nil {
+					logger.Critical("Job %s failed: %s", job.TaskId, err)
+					md, err := metaman.View(job.TaskId)
+					if err != nil {
+						logger.Critical("Cannot get metadata for finished job: %s", err)
+						return
+					}
+					if err := sender.SendFailedJobNotification(&md); err != nil {
+						logger.Critical("cannot send failed job notification: %s", err)
+					}
+
+				}
 			})
 		}(jobName, jobConfig, config, storage)
 	}
