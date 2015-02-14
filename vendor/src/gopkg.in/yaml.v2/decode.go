@@ -1,8 +1,10 @@
 package yaml
 
 import (
+	"encoding"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -30,9 +32,9 @@ type node struct {
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser  yaml_parser_t
-	event   yaml_event_t
-	doc     *node
+	parser yaml_parser_t
+	event  yaml_event_t
+	doc    *node
 }
 
 func newParser(b []byte) *parser {
@@ -192,10 +194,10 @@ type decoder struct {
 }
 
 var (
-	mapItemType = reflect.TypeOf(MapItem{})
-	durationType = reflect.TypeOf(time.Duration(0))
+	mapItemType    = reflect.TypeOf(MapItem{})
+	durationType   = reflect.TypeOf(time.Duration(0))
 	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType = defaultMapType.Elem()
+	ifaceType      = defaultMapType.Elem()
 )
 
 func newDecoder() *decoder {
@@ -258,10 +260,8 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 		if out.Kind() == reflect.Ptr {
 			if out.IsNil() {
 				out.Set(reflect.New(out.Type().Elem()))
-				out = out.Elem()
-			} else {
-				out = out.Elem()
 			}
+			out = out.Elem()
 			again = true
 		}
 		if out.CanAddr() {
@@ -351,8 +351,16 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		} else {
 			out.Set(reflect.Zero(out.Type()))
 		}
-		good = true
-		return
+		return true
+	}
+	if s, ok := resolved.(string); ok && out.CanAddr() {
+		if u, ok := out.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			err := u.UnmarshalText([]byte(s))
+			if err != nil {
+				fail(err)
+			}
+			return true
+		}
 	}
 	switch out.Kind() {
 	case reflect.String:
@@ -382,8 +390,13 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				out.SetInt(resolved)
 				good = true
 			}
+		case uint64:
+			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+				out.SetInt(int64(resolved))
+				good = true
+			}
 		case float64:
-			if resolved < 1<<63-1 && !out.OverflowInt(int64(resolved)) {
+			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
 			}
@@ -399,17 +412,22 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		switch resolved := resolved.(type) {
 		case int:
-			if resolved >= 0 {
+			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
 		case int64:
-			if resolved >= 0 {
+			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
+				out.SetUint(uint64(resolved))
+				good = true
+			}
+		case uint64:
+			if !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
 		case float64:
-			if resolved < 1<<64-1 && !out.OverflowUint(uint64(resolved)) {
+			if resolved <= math.MaxUint64 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
@@ -426,6 +444,9 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			out.SetFloat(float64(resolved))
 			good = true
 		case int64:
+			out.SetFloat(float64(resolved))
+			good = true
+		case uint64:
 			out.SetFloat(float64(resolved))
 			good = true
 		case float64:
@@ -455,34 +476,36 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
+	l := len(n.children)
+
 	var iface reflect.Value
 	switch out.Kind() {
 	case reflect.Slice:
-		// okay
+		out.Set(reflect.MakeSlice(out.Type(), l, l))
 	case reflect.Interface:
 		// No type hints. Will have to use a generic sequence.
 		iface = out
-		out = settableValueOf(make([]interface{}, 0))
+		out = settableValueOf(make([]interface{}, l))
 	default:
 		d.terror(n, yaml_SEQ_TAG, out)
 		return false
 	}
 	et := out.Type().Elem()
 
-	l := len(n.children)
+	j := 0
 	for i := 0; i < l; i++ {
 		e := reflect.New(et).Elem()
 		if ok := d.unmarshal(n.children[i], e); ok {
-			out.Set(reflect.Append(out, e))
+			out.Index(j).Set(e)
+			j++
 		}
 	}
+	out.Set(out.Slice(0, j))
 	if iface.IsValid() {
 		iface.Set(out)
 	}
 	return true
 }
-
-
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	switch out.Kind() {
@@ -584,6 +607,15 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 	}
 	name := settableValueOf("")
 	l := len(n.children)
+
+	var inlineMap reflect.Value
+	var elemType reflect.Type
+	if sinfo.InlineMap != -1 {
+		inlineMap = out.Field(sinfo.InlineMap)
+		inlineMap.Set(reflect.New(inlineMap.Type()).Elem())
+		elemType = inlineMap.Type().Elem()
+	}
+
 	for i := 0; i < l; i += 2 {
 		ni := n.children[i]
 		if isMerge(ni) {
@@ -601,6 +633,13 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 				field = out.FieldByIndex(info.Inline)
 			}
 			d.unmarshal(n.children[i+1], field)
+		} else if sinfo.InlineMap != -1 {
+			if inlineMap.IsNil() {
+				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
+			}
+			value := reflect.New(elemType).Elem()
+			d.unmarshal(n.children[i+1], value)
+			inlineMap.SetMapIndex(name, value)
 		}
 	}
 	return true
