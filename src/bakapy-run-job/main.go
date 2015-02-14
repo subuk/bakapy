@@ -28,6 +28,7 @@ func main() {
 
 	metaman := bakapy.NewMetaMan(config)
 	storage := bakapy.NewStorage(config, metaman)
+	spool := bakapy.NewDirectoryScriptPool(config)
 
 	jobName := *JOB_NAME
 	jobConfig, jobExist := config.Jobs[jobName]
@@ -39,7 +40,7 @@ func main() {
 	storage.Start()
 
 	executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
-	job := bakapy.NewJob(jobName, jobConfig, config.Listen, config.CommandDir, executor, metaman)
+	job := bakapy.NewJob(jobName, jobConfig, config.Listen, spool, executor, metaman)
 	if *FORCE_TASK_ID != "" {
 		if len(*FORCE_TASK_ID) != 36 {
 			fmt.Println("TaskId length must be 36 bytes")

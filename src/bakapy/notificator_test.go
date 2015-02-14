@@ -16,33 +16,27 @@ done
 `)
 
 func TestScriptedNotificatorJobFinished_ScriptNotFound(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
-	}
-	defer os.RemoveAll(tmpdir)
-
-	n := NewScriptedNotificator(tmpdir, "does_not_exist", nil)
+	tmpfile, _ := ioutil.TempFile("", "")
+	tmpfile.Close()
+	spool := &TestScriptPool{fmt.Errorf("no script"), nil, tmpfile.Name()}
+	n := NewScriptedNotificator(spool, "does_not_exist", nil)
 	md := Metadata{}
-	err = n.JobFinished(md)
+	err := n.JobFinished(md)
 	if err == nil {
 		t.Fatal("error expected")
 	}
-	expected := "fork/exec " + tmpdir + "/notify-does_not_exist.sh: no such file or directory"
+	expected := "cannot get script does_not_exist: no script"
 	if err.Error() != expected {
 		t.Fatal("bad error", err)
 	}
 }
 
 func TestScriptedNotificatorJobFinished_ScriptOk(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
-	}
-	defer os.RemoveAll(tmpdir)
-	ioutil.WriteFile(tmpdir+"/notify-test-exist.sh", TEST_SCRIPT, 0755)
+	tmpfile, _ := ioutil.TempFile("", "")
+	tmpfile.Close()
+	spool := &TestScriptPool{nil, TEST_SCRIPT, tmpfile.Name()}
 	out := bytes.NewBuffer([]byte{})
-	n := NewScriptedNotificator(tmpdir, "test-exist", map[string]string{
+	n := NewScriptedNotificator(spool, "test-exist", map[string]string{
 		"param1": "wow",
 		"pArom":  "hello",
 	})
@@ -55,7 +49,7 @@ func TestScriptedNotificatorJobFinished_ScriptOk(t *testing.T) {
 		Message: "test message",
 		TaskId:  TaskId("123123"),
 	}
-	err = n.JobFinished(md)
+	err := n.JobFinished(md)
 	if err != nil {
 		t.Fatal("error", err)
 	}
@@ -68,7 +62,23 @@ func TestScriptedNotificatorJobFinished_ScriptOk(t *testing.T) {
 	expected += "BAKAPY_METADATA_TASKID=123123\n"
 	expected += "BAKAPY_PARAM_PARAM1=wow\n"
 	expected += "BAKAPY_PARAM_PAROM=hello\n"
+
 	if o := out.String(); o != expected {
 		t.Fatal("bad script output", o)
+	}
+}
+
+func TestScriptedNotificatorJobFinished_ScriptDeleted(t *testing.T) {
+	tmpfile, _ := ioutil.TempFile("", "")
+	tmpfile.Close()
+	spool := &TestScriptPool{nil, TEST_SCRIPT, tmpfile.Name()}
+	n := NewScriptedNotificator(spool, "test-exist", nil)
+	md := Metadata{}
+	err := n.JobFinished(md)
+	if err != nil {
+		t.Fatal("error", err)
+	}
+	if fi, err := os.Stat(tmpfile.Name()); err == nil {
+		t.Fatal("temporary script file still exist:", fi.Name())
 	}
 }

@@ -5,8 +5,6 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"fmt"
 	"github.com/op/go-logging"
-	"os"
-	"path"
 	"strings"
 	"time"
 )
@@ -34,21 +32,21 @@ type Job struct {
 	Name        string
 	TaskId      TaskId
 	StorageAddr string
-	CommandDir  string
 	executor    Executer
+	scripts     BackupScriptPool
 	cfg         *JobConfig
 	logger      *logging.Logger
 	metaman     MetaManager
 }
 
-func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, executor Executer, metaman MetaManager) *Job {
+func NewJob(name string, cfg *JobConfig, StorageAddr string, scripts BackupScriptPool, executor Executer, metaman MetaManager) *Job {
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
 		Name:        name,
 		TaskId:      taskId,
 		StorageAddr: StorageAddr,
-		CommandDir:  commandDir,
+		scripts:     scripts,
 		cfg:         cfg,
 		executor:    executor,
 		logger:      logging.MustGetLogger(loggerName),
@@ -57,8 +55,8 @@ func NewJob(name string, cfg *JobConfig, StorageAddr string, commandDir string, 
 }
 
 func (job *Job) getScript() ([]byte, error) {
-	script := new(bytes.Buffer)
-	err := JOB_TEMPLATE.Execute(script, &JobTemplateContext{
+	fullScript := new(bytes.Buffer)
+	err := JOB_TEMPLATE.Execute(fullScript, &JobTemplateContext{
 		Job:              job,
 		FILENAME_LEN_LEN: STORAGE_FILENAME_LEN_LEN,
 	})
@@ -66,19 +64,16 @@ func (job *Job) getScript() ([]byte, error) {
 		return nil, err
 	}
 
-	scriptPath := path.Join(job.CommandDir, job.cfg.Command)
-	job.logger.Debug("reading command file %s", scriptPath)
-	fd, err := os.Open(scriptPath)
+	script, err := job.scripts.BackupScript(job.cfg.Command)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot find backup script %s: %s", job.cfg.Command, err)
 	}
-	defer fd.Close()
 
-	_, err = script.ReadFrom(fd)
+	_, err = fullScript.ReadFrom(bytes.NewReader(script))
 	if err != nil {
 		return nil, err
 	}
-	return script.Bytes(), nil
+	return fullScript.Bytes(), nil
 }
 
 func (job *Job) Run() error {

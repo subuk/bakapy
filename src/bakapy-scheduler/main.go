@@ -31,11 +31,12 @@ func main() {
 
 	logger.Debug(string(config.PrettyFmt()))
 
+	scriptPool := bakapy.NewDirectoryScriptPool(config)
 	metaman := bakapy.NewMetaMan(config)
 	storage := bakapy.NewStorage(config, metaman)
 	var notificators []bakapy.Notificator
 	for _, ncConfig := range config.Notificators {
-		nc := bakapy.NewScriptedNotificator(config.CommandDir, ncConfig.Name, ncConfig.Params)
+		nc := bakapy.NewScriptedNotificator(scriptPool, ncConfig.Name, ncConfig.Params)
 		notificators = append(notificators, nc)
 	}
 
@@ -54,7 +55,7 @@ func main() {
 				executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
 				job := bakapy.NewJob(
 					jobName, jobConfig, config.Listen,
-					config.CommandDir, executor,
+					scriptPool, executor,
 					metaman,
 				)
 				err := job.Run()

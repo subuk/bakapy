@@ -33,9 +33,10 @@ func TestJob_Run_ExecutionOkMetadataSetted(t *testing.T) {
 	gcfg := &Config{MetadataDir: tmpdir}
 	metaman := NewMetaMan(gcfg)
 	defer os.RemoveAll(gcfg.MetadataDir)
+	spool := &TestScriptPool{nil, nil, ""}
 	job := NewJob(
 		"test", cfg, "127.0.0.1:9999",
-		".", executor, metaman,
+		spool, executor, metaman,
 	)
 
 	err = job.Run()
@@ -98,9 +99,10 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 	metaman := NewMetaMan(gcfg)
 	defer os.RemoveAll(gcfg.MetadataDir)
 	cfg := &JobConfig{Command: "utils.go", Namespace: "wow/fail", Gzip: true, MaxAge: maxAge}
+	spool := &TestScriptPool{nil, nil, ""}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
-		".", executor, metaman,
+		spool, executor, metaman,
 	)
 
 	err = job.Run()
@@ -142,52 +144,42 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 
 }
 
-func TestJob_Run_FailedNoSuchCommand(t *testing.T) {
+func TestJob_Run_FailedCannotAddMetadata(t *testing.T) {
+	executor := &TestOkExecutor{}
+	gcfg := &Config{MetadataDir: "/DOES_NOT_EXIST"}
+	metaman := NewMetaMan(gcfg)
+	spool := &TestScriptPool{nil, nil, ""}
+	cfg := &JobConfig{}
+	job := NewJob(
+		"test_fail", cfg, "127.0.0.1:9999",
+		spool, executor, metaman,
+	)
+
+	err := job.Run()
+	if err.Error() != "cannot add metadata: mkdir /DOES_NOT_EXIST: permission denied" {
+		t.Fatal("bad err", err)
+	}
+}
+
+func TestJob_Run_FailedCannotGetScript(t *testing.T) {
 	executor := &TestOkExecutor{}
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal("cannot create temp dir:", err)
 	}
 	gcfg := &Config{MetadataDir: tmpdir}
+	defer os.RemoveAll(tmpdir)
+
 	metaman := NewMetaMan(gcfg)
-	defer os.RemoveAll(gcfg.MetadataDir)
-	cfg := &JobConfig{Command: "DOES_NOT_EXIST"}
+	spool := &TestScriptPool{errors.New("test bad script"), nil, ""}
+	cfg := &JobConfig{Command: "wowcmd"}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
-		".", executor, metaman,
+		spool, executor, metaman,
 	)
 
 	err = job.Run()
-	if err == nil {
-		t.Fatal("error must not be nil")
-	}
-	m, err := metaman.View(job.TaskId)
-	if err != nil {
-		t.Fatal("cannot get metadata:", err)
-	}
-
-	if m.Success {
-		t.Fatal("m.Success must be false")
-	}
-	if m.Message != "open DOES_NOT_EXIST: no such file or directory" {
-		t.Fatalf("bad m.Message: %s", m.Message)
-	}
-
-}
-
-func TestJob_Run_FailedCannotAddMetadata(t *testing.T) {
-	executor := &TestOkExecutor{}
-	gcfg := &Config{MetadataDir: "/DOES_NOT_EXIST"}
-	metaman := NewMetaMan(gcfg)
-	defer os.RemoveAll(gcfg.MetadataDir)
-	cfg := &JobConfig{}
-	job := NewJob(
-		"test_fail", cfg, "127.0.0.1:9999",
-		".", executor, metaman,
-	)
-
-	err := job.Run()
-	if err.Error() == "wow" {
+	if err.Error() != "cannot find backup script wowcmd: test bad script" {
 		t.Fatal("bad err", err)
 	}
 }

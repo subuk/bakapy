@@ -1,10 +1,10 @@
 package bakapy
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 )
 
@@ -14,16 +14,16 @@ type Notificator interface {
 }
 
 type ScriptedNotificator struct {
-	rootDir string
+	scripts NotifyScriptPool
 	name    string
 	params  map[string]string
 	output  io.Writer
 	errput  io.Writer
 }
 
-func NewScriptedNotificator(rootDir, name string, params map[string]string) *ScriptedNotificator {
+func NewScriptedNotificator(scripts NotifyScriptPool, name string, params map[string]string) *ScriptedNotificator {
 	return &ScriptedNotificator{
-		rootDir: rootDir,
+		scripts: scripts,
 		params:  params,
 		name:    name,
 		output:  os.Stdout,
@@ -32,8 +32,13 @@ func NewScriptedNotificator(rootDir, name string, params map[string]string) *Scr
 }
 
 func (s *ScriptedNotificator) JobFinished(md Metadata) error {
-	fullPath := path.Join(s.rootDir, "notify-"+s.name+".sh")
-	cmd := exec.Command(fullPath)
+	scriptPath, err := s.scripts.NotifyScriptPath(s.name)
+	if err != nil {
+		return fmt.Errorf("cannot get script %s: %s", s.name, err)
+	}
+	defer os.Remove(scriptPath)
+
+	cmd := exec.Command(scriptPath)
 	cmd.Stdout = s.output
 	cmd.Stderr = s.errput
 
