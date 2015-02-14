@@ -48,7 +48,7 @@ func main() {
 		job.TaskId = bakapy.TaskId(*FORCE_TASK_ID)
 	}
 	if err := job.Run(); err != nil {
-		fmt.Printf("Job failed:", err)
+		fmt.Printf("Job failed: %s", err)
 		os.Exit(1)
 	}
 	fmt.Println("Job finished")
