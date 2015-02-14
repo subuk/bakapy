@@ -10,6 +10,10 @@ for runTest in $(find acceptance/ -name 'run.sh');do
         echo "fail	$(dirname $runTest). See output below."
         echo -e "$testOutput"
         exit 1
+    else
+        if [ "$1" == "-v" ];then
+            echo -e "$testOutput"
+        fi
     fi
     popd >/dev/null
     echo "ok	$(dirname $runTest)"

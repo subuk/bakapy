@@ -23,25 +23,6 @@ const (
 
 const JOB_FINISH = "_@!_JOB_FINISH_!@_"
 
-var MAIL_TEMPLATE_JOB_FAILED = template.Must(template.New("mail").Parse(`From: {{ .From }}
-To: {{.To}}
-Subject: {{.Subject}}
-Content-Type: text/plain;charset=utf8
-
-Job {{.JobName}} failed:
-{{.Message}}
-
-Output:
------------------------------
-{{.Output}}
------------------------------
-
-Errput:
------------------------------
-{{.Errput}}
------------------------------
-`))
-
 var JOB_TEMPLATE = template.Must(template.New("job").Parse(`
 ##
 # Common header
