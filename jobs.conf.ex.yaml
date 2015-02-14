@@ -81,6 +81,7 @@ plesk-vhosts-full:
     listed_incremental_dir: /tmp/backup-meta
 
   run_at:
+    second: '*/10'
     minute: '*'
     hour: '*'
     day: '*'
