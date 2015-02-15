@@ -29,6 +29,25 @@ func TestMetaMan_AddOk(t *testing.T) {
 
 }
 
+func TestMetaMan_AddAlreadyExist(t *testing.T) {
+	mm := NewTestMetaMan()
+	defer os.RemoveAll(mm.(*MetaMan).RootDir)
+	md := Metadata{
+		JobName:   "test",
+		Namespace: "ns",
+		Command:   "cmd",
+	}
+	mm.Add("123", md)
+	err := mm.Add("123", md)
+	if err == nil {
+		t.Fatal("error expected")
+	}
+	if err.Error() != "metadata for task 123 already exist" {
+		t.Fatal("bad error", err)
+	}
+
+}
+
 func TestMetaMan_RemoveOk(t *testing.T) {
 	mm := NewTestMetaMan()
 	defer os.RemoveAll(mm.(*MetaMan).RootDir)

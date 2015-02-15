@@ -131,6 +131,9 @@ func (m *MetaMan) View(id TaskId) (Metadata, error) {
 func (m *MetaMan) Add(id TaskId, md Metadata) error {
 	m.logger.Debug("adding metadata for task id %s", id)
 	md.TaskId = id
+	if _, err := m.View(id); err == nil {
+		return fmt.Errorf("metadata for task %s already exist", id)
+	}
 	return m.save(id, &md)
 }
 
