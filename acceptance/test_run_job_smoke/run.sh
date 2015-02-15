@@ -4,7 +4,16 @@ export PATH="$(dirname $(dirname `pwd`))/bin:$PATH"
 
 taskId=8732d71b-077e-49ed-9222-b1177280de1e
 
+bakapy-storage --config=bakapy.conf &
+storagePid="$!"
 bakapy-run-job --taskid="$taskId" --config=bakapy.conf --job=smoke
+
+echo "TEST_OUTPUT: Waiting storage to exit"
+kill $storagePid
+while true; do
+    test ! -d /proc/${storagePid} && echo "TEST_OUTPUT: Storage stopped" && exit 0
+    sleep 1
+done
 
 
 if [ $(echo "$taskId"| wc -l) != 1 ];then
@@ -15,8 +24,6 @@ fi
 mdSuccess=$(bakapy-show-meta --config=bakapy.conf --key=Success "$taskId")
 if [ "$mdSuccess" != "true" ];then
     echo "Error: job failed"
-    bakapy-show-meta --config=bakapy.conf --key=Output "$taskId"
-    bakapy-show-meta --config=bakapy.conf --key=Errput "$taskId"
     exit 1
 fi
 
@@ -40,6 +47,3 @@ if [ $(cat storage/smoke/test1.txt) != "test1Content" ];then
     echo "Error: unexpected content in file storage/smoke/test1.txt"
     exit 1
 fi
-
-
-echo "."
