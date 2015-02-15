@@ -105,7 +105,7 @@ func (stor *LocalFileStorage) Serve(ln net.Listener) {
 				} else {
 					stor.logger.Info("connection from %s handled successfully", conn.RemoteAddr())
 				}
-
+				conn.Close()
 			}()
 		case <-stor.shutdown:
 			stor.logger.Debug("Closing listening socket %s", ln.Addr().String())
