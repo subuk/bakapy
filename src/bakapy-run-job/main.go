@@ -27,7 +27,6 @@ func main() {
 	}
 
 	metaman := bakapy.NewMetaMan(config)
-	storage := bakapy.NewStorage(config, metaman)
 	spool := bakapy.NewDirectoryScriptPool(config)
 
 	jobName := *JOB_NAME
@@ -36,8 +35,6 @@ func main() {
 		fmt.Printf("Job %s not found\n", jobName)
 		os.Exit(1)
 	}
-
-	storage.Start()
 
 	executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
 	job := bakapy.NewJob(jobName, jobConfig, config.Listen, spool, executor, metaman)

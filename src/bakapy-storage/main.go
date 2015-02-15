@@ -1,0 +1,62 @@
+package main
+
+import (
+	"bakapy"
+	"flag"
+	"fmt"
+	"github.com/op/go-logging"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+var logger = logging.MustGetLogger("bakapy.storage")
+var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
+var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
+var TEST_CONFIG_ONLY = flag.Bool("test", false, "Check config and exit")
+
+func main() {
+	flag.Parse()
+	err := bakapy.SetupLogging(*LOG_LEVEL)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	config, err := bakapy.ParseConfig(*CONFIG_PATH)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Configuration error: %s\n", err)
+		os.Exit(1)
+	}
+
+	logger.Debug(string(config.PrettyFmt()))
+
+	metaman := bakapy.NewMetaMan(config)
+	storage := bakapy.NewStorage(config, metaman)
+
+	if *TEST_CONFIG_ONLY {
+		return
+	}
+
+	storage.Start()
+
+	done := make(chan bool)
+	shutDownSigs := make(chan os.Signal, 1)
+	signal.Notify(shutDownSigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-shutDownSigs
+		logger.Warning("Got signal %s, gracefully shutting down", sig)
+		done <- storage.Shutdown()
+	}()
+	go func() {
+		for {
+			err := bakapy.CleanupExpiredJobs(metaman, storage)
+			if err != nil {
+				logger.Warning("cleanup failed: %s", err.Error())
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
+	<-done
+}

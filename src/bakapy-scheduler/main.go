@@ -7,7 +7,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/robfig/cron"
 	"os"
-	"time"
 )
 
 var logger = logging.MustGetLogger("bakapy.scheduler")
@@ -33,7 +32,7 @@ func main() {
 
 	scriptPool := bakapy.NewDirectoryScriptPool(config)
 	metaman := bakapy.NewMetaMan(config)
-	storage := bakapy.NewStorage(config, metaman)
+
 	var notificators []bakapy.Notificator
 	for _, ncConfig := range config.Notificators {
 		nc := bakapy.NewScriptedNotificator(scriptPool, ncConfig.Name, ncConfig.Params)
@@ -85,15 +84,6 @@ func main() {
 		return
 	}
 
-	storage.Start()
 	scheduler.Start()
-
-	for {
-		err := bakapy.CleanupExpiredJobs(metaman, storage)
-		if err != nil {
-			logger.Warning("cleanup failed: %s", err.Error())
-		}
-		time.Sleep(time.Minute)
-	}
 
 }

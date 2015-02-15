@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"sync"
 	"time"
 )
 
@@ -18,26 +19,36 @@ type Storage interface {
 }
 
 type LocalFileStorage struct {
-	RootDir     string
-	metaman     MetaManager
-	listenAddr  string
-	connections chan *StorageConn
-	logger      *logging.Logger
+	RootDir    string
+	metaman    MetaManager
+	listenAddr string
+	cons       *sync.WaitGroup
+	shutdown   chan int
+	logger     *logging.Logger
 }
 
 func NewStorage(cfg *Config, metaman MetaManager) *LocalFileStorage {
 	return &LocalFileStorage{
-		RootDir:     cfg.StorageDir,
-		connections: make(chan *StorageConn),
-		listenAddr:  cfg.Listen,
-		metaman:     metaman,
-		logger:      logging.MustGetLogger("bakapy.storage"),
+		RootDir:    cfg.StorageDir,
+		listenAddr: cfg.Listen,
+		metaman:    metaman,
+		shutdown:   make(chan int),
+		cons:       new(sync.WaitGroup),
+		logger:     logging.MustGetLogger("bakapy.storage"),
 	}
 }
 
 func (stor *LocalFileStorage) Start() {
 	ln := stor.Listen()
 	go stor.Serve(ln)
+}
+
+func (stor *LocalFileStorage) Shutdown() bool {
+	stor.logger.Debug("Gracefully shutdown requested")
+	stor.shutdown <- 1
+	stor.logger.Debug("Wating existing connections to finish")
+	stor.cons.Wait()
+	return true
 }
 
 func (stor *LocalFileStorage) Listen() net.Listener {
@@ -49,26 +60,47 @@ func (stor *LocalFileStorage) Listen() net.Listener {
 	return ln
 }
 
+type __acc struct {
+	c net.Conn
+	e error
+}
+
 func (stor *LocalFileStorage) Serve(ln net.Listener) {
+	acceptCh := make(chan net.Conn)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				stor.logger.Error("Error during accept() call: %v", err)
+				continue
+			}
+			acceptCh <- conn
+		}
+		close(acceptCh)
+	}()
 	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			stor.logger.Error("Error during accept() call: %v", err)
+		select {
+		case conn := <-acceptCh:
+			stor.logger.Debug("new connection from %s", conn.RemoteAddr().String())
+
+			loggerName := fmt.Sprintf("bakapy.storage.conn[%s]", conn.RemoteAddr().String())
+			logger := logging.MustGetLogger(loggerName)
+			go func() {
+				err := stor.HandleConnection(NewStorageConn(conn, logger))
+				if err != nil {
+					stor.logger.Warning("Error during connection from %s: %s", conn.RemoteAddr(), err)
+				} else {
+					stor.logger.Info("connection from %s handled successfully", conn.RemoteAddr())
+				}
+
+			}()
+		case <-stor.shutdown:
+			stor.logger.Debug("Closing listening socket %s", ln.Addr().String())
+			if err := ln.Close(); err != nil {
+				panic(fmt.Errorf("cannot close listening socket: %s", err))
+			}
 			return
 		}
-		stor.logger.Debug("new connection from %s", conn.RemoteAddr().String())
-
-		loggerName := fmt.Sprintf("bakapy.storage.conn[%s]", conn.RemoteAddr().String())
-		logger := logging.MustGetLogger(loggerName)
-		go func() {
-			err := stor.HandleConnection(NewStorageConn(conn, logger))
-			if err != nil {
-				stor.logger.Warning("Error during connection from %s: %s", conn.RemoteAddr(), err)
-			} else {
-				stor.logger.Info("connection from %s handled successfully", conn.RemoteAddr())
-			}
-
-		}()
 	}
 }
 
@@ -78,6 +110,8 @@ func (stor *LocalFileStorage) Remove(ns, filename string) error {
 }
 
 func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) error {
+	stor.cons.Add(1)
+	defer stor.cons.Done()
 	var err error
 
 	taskId, err := conn.ReadTaskId()
