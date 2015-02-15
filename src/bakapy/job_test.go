@@ -21,6 +21,14 @@ func (e *TestFailExecutor) Execute(script []byte, output io.Writer, errput io.Wr
 	return errors.New("Oops")
 }
 
+type TestCustomExecutor struct {
+	execute func(script []byte, output io.Writer, errput io.Writer) error
+}
+
+func (e *TestCustomExecutor) Execute(script []byte, output io.Writer, errput io.Writer) error {
+	return e.execute(script, output, errput)
+}
+
 func TestJob_Run_ExecutionOkMetadataSetted(t *testing.T) {
 	now := time.Now()
 	executor := &TestOkExecutor{}
@@ -182,4 +190,135 @@ func TestJob_Run_FailedCannotGetScript(t *testing.T) {
 	if err.Error() != "cannot find backup script wowcmd: test bad script" {
 		t.Fatal("bad err", err)
 	}
+}
+
+func TestJob_Run_ExecutionOkMetadataTotalSizeCalculated(t *testing.T) {
+	tmpdir, _ := ioutil.TempDir("", "")
+	defer os.RemoveAll(tmpdir)
+
+	cfg := &JobConfig{}
+	gcfg := &Config{MetadataDir: tmpdir}
+
+	metaman := NewMetaMan(gcfg)
+	spool := &TestScriptPool{nil, nil, ""}
+
+	releaseExecute := make(chan int)
+	executor := &TestCustomExecutor{
+		execute: func(script []byte, output io.Writer, errput io.Writer) error {
+			<-releaseExecute
+			return nil
+		},
+	}
+
+	job := NewJob(
+		"test", cfg, "127.0.0.1:9999",
+		spool, executor, metaman,
+	)
+
+	waitJobRun := make(chan int)
+	go func() {
+		defer close(waitJobRun)
+		err := job.Run()
+		if err != nil {
+			t.Fatal("unexpected error", err)
+			return
+		}
+		md, err := metaman.View(job.TaskId)
+		if err != nil {
+			t.Fatal("unexpected error", err)
+			return
+		}
+		if !md.Success {
+			t.Fatal("md.Success == true expected")
+		}
+
+		if md.TotalSize != 300 {
+			t.Fatal("Metadata total size must be 300, not", md.TotalSize)
+			return
+		}
+	}()
+
+	go metaman.Update(job.TaskId, func(md *Metadata) {
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 100,
+		})
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 150,
+		})
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 50,
+		})
+		close(releaseExecute)
+	})
+	<-waitJobRun
+}
+
+func TestJob_Run_ExecutionFailedMetadataTotalSizeCalculated(t *testing.T) {
+	tmpdir, _ := ioutil.TempDir("", "")
+	defer os.RemoveAll(tmpdir)
+
+	cfg := &JobConfig{}
+	gcfg := &Config{MetadataDir: tmpdir}
+
+	metaman := NewMetaMan(gcfg)
+	spool := &TestScriptPool{nil, nil, ""}
+
+	releaseExecute := make(chan int)
+	executor := &TestCustomExecutor{
+		execute: func(script []byte, output io.Writer, errput io.Writer) error {
+			<-releaseExecute
+			return errors.New("test error")
+		},
+	}
+
+	job := NewJob(
+		"test", cfg, "127.0.0.1:9999",
+		spool, executor, metaman,
+	)
+
+	waitJobRun := make(chan int)
+	go func() {
+		defer close(waitJobRun)
+		err := job.Run()
+		if err == nil {
+			t.Fatal("error expected", err)
+			return
+		}
+		if err.Error() != "test error" {
+			t.Fatal("bad error", err)
+			return
+		}
+		md, err := metaman.View(job.TaskId)
+		if err != nil {
+			t.Fatal("unexpected error", err)
+			return
+		}
+		if md.Success {
+			t.Fatal("md.Success == false expected")
+		}
+		if md.TotalSize != 330 {
+			t.Fatal("Metadata total size must be 330, not", md.TotalSize)
+			return
+		}
+	}()
+
+	go metaman.Update(job.TaskId, func(md *Metadata) {
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 100,
+		})
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 150,
+		})
+		md.Files = append(md.Files, MetadataFileEntry{
+			Name: "test1.txt",
+			Size: 80,
+		})
+		close(releaseExecute)
+	})
+	<-waitJobRun
 }

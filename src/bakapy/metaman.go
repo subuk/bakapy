@@ -62,6 +62,9 @@ func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
 	data, err := m.get(id)
 	if err != nil {
 		lock.Unlock()
+		m.Lock()
+		delete(m.taken, id)
+		m.Unlock()
 		return nil, err
 	}
 	return data, nil
@@ -101,6 +104,9 @@ func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
 	}
 	if lock, exist := m.taken[id]; exist {
 		lock.Unlock()
+		m.Lock()
+		delete(m.taken, id)
+		m.Unlock()
 	}
 	return nil
 }

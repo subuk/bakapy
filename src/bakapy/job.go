@@ -113,6 +113,7 @@ func (job *Job) Run() error {
 			md.EndTime = time.Now().UTC()
 			md.Output = output.Bytes()
 			md.Errput = errput.Bytes()
+			md.CalculateTotalSize()
 		})
 		if mdErr != nil {
 			jobErr = fmt.Errorf("cannot save metadata %s. %s.", mdErr, jobErr)
@@ -126,5 +127,6 @@ func (job *Job) Run() error {
 		md.EndTime = time.Now().UTC()
 		md.Output = output.Bytes()
 		md.Errput = errput.Bytes()
+		md.CalculateTotalSize()
 	})
 }

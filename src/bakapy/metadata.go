@@ -55,3 +55,10 @@ func (metadata *Metadata) AvgSpeed() int64 {
 	}
 	return metadata.TotalSize / int64(metadata.Duration().Seconds())
 }
+
+func (metadata *Metadata) CalculateTotalSize() {
+	metadata.TotalSize = 0
+	for _, fi := range metadata.Files {
+		metadata.TotalSize += fi.Size
+	}
+}
