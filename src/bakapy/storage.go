@@ -12,7 +12,12 @@ import (
 	"time"
 )
 
-type Storage struct {
+type Storage interface {
+	Serve(ln net.Listener)
+	Remove(namespace, filename string) error
+}
+
+type LocalFileStorage struct {
 	RootDir     string
 	metaman     MetaManager
 	listenAddr  string
@@ -20,8 +25,8 @@ type Storage struct {
 	logger      *logging.Logger
 }
 
-func NewStorage(cfg *Config, metaman MetaManager) *Storage {
-	return &Storage{
+func NewStorage(cfg *Config, metaman MetaManager) *LocalFileStorage {
+	return &LocalFileStorage{
 		RootDir:     cfg.StorageDir,
 		connections: make(chan *StorageConn),
 		listenAddr:  cfg.Listen,
@@ -30,12 +35,12 @@ func NewStorage(cfg *Config, metaman MetaManager) *Storage {
 	}
 }
 
-func (stor *Storage) Start() {
+func (stor *LocalFileStorage) Start() {
 	ln := stor.Listen()
 	go stor.Serve(ln)
 }
 
-func (stor *Storage) Listen() net.Listener {
+func (stor *LocalFileStorage) Listen() net.Listener {
 	stor.logger.Info("Listening on %s", stor.listenAddr)
 	ln, err := net.Listen("tcp", stor.listenAddr)
 	if err != nil {
@@ -44,7 +49,7 @@ func (stor *Storage) Listen() net.Listener {
 	return ln
 }
 
-func (stor *Storage) Serve(ln net.Listener) {
+func (stor *LocalFileStorage) Serve(ln net.Listener) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -67,7 +72,12 @@ func (stor *Storage) Serve(ln net.Listener) {
 	}
 }
 
-func (stor *Storage) HandleConnection(conn StorageProtocolHandler) error {
+func (stor *LocalFileStorage) Remove(ns, filename string) error {
+	fullPath := path.Join(stor.RootDir, ns, filename)
+	return os.Remove(fullPath)
+}
+
+func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) error {
 	var err error
 
 	taskId, err := conn.ReadTaskId()

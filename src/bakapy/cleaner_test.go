@@ -96,7 +96,7 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// After storage cleanup we does not expect any errors
 	//
-	err := storage.CleanupExpired()
+	err := CleanupExpiredJobs(metaman, storage)
 	if err != nil {
 		t.Fatal("error:", err)
 	}

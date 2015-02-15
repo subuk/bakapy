@@ -49,7 +49,7 @@ func main() {
 			logger.Warning("job %s disabled, skipping", jobName)
 			continue
 		}
-		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config, storage *bakapy.Storage) {
+		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config) {
 			scheduler.AddFunc(runSpec, func() {
 				logger.Critical("Starting job %s", jobName)
 				executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
@@ -78,7 +78,7 @@ func main() {
 					}
 				}
 			})
-		}(jobName, jobConfig, config, storage)
+		}(jobName, jobConfig, config)
 	}
 
 	if *TEST_CONFIG_ONLY {
@@ -89,7 +89,7 @@ func main() {
 	scheduler.Start()
 
 	for {
-		err := storage.CleanupExpired()
+		err := bakapy.CleanupExpiredJobs(metaman, storage)
 		if err != nil {
 			logger.Warning("cleanup failed: %s", err.Error())
 		}
