@@ -46,8 +46,8 @@ func main() {
 	signal.Notify(shutDownSigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-shutDownSigs
-		logger.Warning("Got signal %s, gracefully shutting down", sig)
-		done <- storage.Shutdown()
+		logger.Warning("Got signal %s, gracefully shutting down with 1 minute timeout", sig)
+		done <- storage.Shutdown(60)
 	}()
 	go func() {
 		for {

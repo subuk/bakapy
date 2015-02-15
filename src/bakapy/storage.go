@@ -43,12 +43,25 @@ func (stor *LocalFileStorage) Start() {
 	go stor.Serve(ln)
 }
 
-func (stor *LocalFileStorage) Shutdown() bool {
-	stor.logger.Debug("Gracefully shutdown requested")
-	stor.shutdown <- 1
-	stor.logger.Debug("Wating existing connections to finish")
-	stor.cons.Wait()
-	return true
+func (stor *LocalFileStorage) Shutdown(seconds int) bool {
+
+	doneCh := make(chan bool)
+	timer := time.NewTimer(time.Duration(time.Second * time.Duration(seconds)))
+
+	go func() {
+		stor.logger.Debug("gracefully shutdown requested")
+		stor.shutdown <- 1
+		stor.logger.Debug("wating existing connections to finish")
+		stor.cons.Wait()
+		doneCh <- true
+	}()
+	select {
+	case <-doneCh:
+		return true
+	case <-timer.C:
+		stor.logger.Warning("gracefully shutdown timed out in %d seconds", seconds)
+		return false
+	}
 }
 
 func (stor *LocalFileStorage) Listen() net.Listener {
@@ -72,7 +85,7 @@ func (stor *LocalFileStorage) Serve(ln net.Listener) {
 			conn, err := ln.Accept()
 			if err != nil {
 				stor.logger.Error("Error during accept() call: %v", err)
-				continue
+				return
 			}
 			acceptCh <- conn
 		}
