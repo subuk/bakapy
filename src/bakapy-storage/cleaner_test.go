@@ -1,6 +1,7 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -31,28 +32,28 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// We have a storage
 	//
-	config := NewConfig()
+	config := bakapy.NewConfig()
 	config.MetadataDir, _ = ioutil.TempDir("", "")
-	config.StorageDir, _ = ioutil.TempDir("", "")
+	storageDir, _ := ioutil.TempDir("", "")
 	defer os.RemoveAll(config.MetadataDir)
-	defer os.RemoveAll(config.StorageDir)
-	metaman := NewMetaMan(config)
-	storage := NewStorage(config, metaman)
-	os.MkdirAll(config.StorageDir+"/some_empty_dir", 0755)
-	os.MkdirAll(config.StorageDir+"/some_restricted_dir", 0000)
+	defer os.RemoveAll(storageDir)
+	metaman := bakapy.NewMetaMan(config)
+	storage := NewStorage(storageDir, "", metaman)
+	os.MkdirAll(storageDir+"/some_empty_dir", 0755)
+	os.MkdirAll(storageDir+"/some_restricted_dir", 0000)
 
 	//
 	// Active backup
 	//
-	os.MkdirAll(config.StorageDir+"/wow", 0755)
-	f3, _ := os.Create(config.StorageDir + "/wow/file3.txt")
+	os.MkdirAll(storageDir+"/wow", 0755)
+	f3, _ := os.Create(storageDir + "/wow/file3.txt")
 	f3.Close()
-	f4, _ := os.Create(config.StorageDir + "/wow/file4.txt")
+	f4, _ := os.Create(storageDir + "/wow/file4.txt")
 	f4.Close()
-	metaman.Add("one", Metadata{
+	metaman.Add("one", bakapy.Metadata{
 		Namespace:  "wow",
 		ExpireTime: time.Now().Add(threeDays),
-		Files: []MetadataFileEntry{
+		Files: []bakapy.MetadataFileEntry{
 			{"file3.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file4.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
@@ -61,15 +62,15 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expired backup
 	//
-	os.MkdirAll(config.StorageDir+"/hello", 0755)
-	f1, _ := os.Create(config.StorageDir + "/hello/file1.txt")
+	os.MkdirAll(storageDir+"/hello", 0755)
+	f1, _ := os.Create(storageDir + "/hello/file1.txt")
 	f1.Close()
-	f2, _ := os.Create(config.StorageDir + "/hello/file2.txt")
+	f2, _ := os.Create(storageDir + "/hello/file2.txt")
 	f2.Close()
-	metaman.Add("expired", Metadata{
+	metaman.Add("expired", bakapy.Metadata{
 		Namespace:  "hello",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []MetadataFileEntry{
+		Files: []bakapy.MetadataFileEntry{
 			{"file1.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file2.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},
@@ -78,10 +79,10 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
 	// Expired metadata with files deleted manually
 	//
-	metaman.Add("expired-broken", Metadata{
+	metaman.Add("expired-broken", bakapy.Metadata{
 		Namespace:  "xxx",
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
-		Files: []MetadataFileEntry{
+		Files: []bakapy.MetadataFileEntry{
 			{"file5.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 			{"file6.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
 		},

@@ -1,14 +1,16 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"github.com/op/go-logging"
 	"time"
 )
 
-type Cleaner func(metaman MetaManager, storage Storage) error
+type Cleaner func(metaman bakapy.MetaManager, storage Storage) error
 
-func CleanupExpiredJobs(metaman MetaManager, storage Storage) error {
+func CleanupExpiredJobs(metaman bakapy.MetaManager, storage Storage) error {
 	logger := logging.MustGetLogger("bakapy.cleaner.CleanupExpiredFiles")
+	logger.Debug("cleaning up storage")
 	for taskId := range metaman.Keys() {
 		md, err := metaman.View(taskId)
 		if err != nil {

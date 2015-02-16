@@ -1,6 +1,7 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"bufio"
 	"compress/gzip"
 	"fmt"
@@ -20,17 +21,17 @@ type Storage interface {
 
 type LocalFileStorage struct {
 	RootDir    string
-	metaman    MetaManager
+	metaman    bakapy.MetaManager
 	listenAddr string
 	cons       *sync.WaitGroup
 	shutdown   chan int
 	logger     *logging.Logger
 }
 
-func NewStorage(cfg *Config, metaman MetaManager) *LocalFileStorage {
+func NewStorage(root, listen string, metaman bakapy.MetaManager) *LocalFileStorage {
 	return &LocalFileStorage{
-		RootDir:    cfg.StorageDir,
-		listenAddr: cfg.Listen,
+		RootDir:    root,
+		listenAddr: listen,
 		metaman:    metaman,
 		shutdown:   make(chan int),
 		cons:       new(sync.WaitGroup),
@@ -140,8 +141,10 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 		return fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
 	}
 
+	stor.logger.Debug("Found metadata %s", metadata)
+
 	var connErr error
-	updateErr := stor.metaman.Update(taskId, func(md *Metadata) {
+	updateErr := stor.metaman.Update(taskId, func(md *bakapy.Metadata) {
 
 		filename, err := conn.ReadFilename()
 		if err != nil {
@@ -149,8 +152,8 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 			return
 		}
 
-		if filename == JOB_FINISH {
-			stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", JOB_FINISH)
+		if filename == bakapy.JOB_FINISH {
+			stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", bakapy.JOB_FINISH)
 			return
 		}
 
@@ -164,7 +167,7 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 			fileSavePath += ".gz"
 		}
 
-		fileMeta := MetadataFileEntry{}
+		fileMeta := bakapy.MetadataFileEntry{}
 		fileMeta.Name = filename
 		fileMeta.SourceAddr = conn.RemoteAddr().String()
 		fileMeta.StartTime = time.Now()

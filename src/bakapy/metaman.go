@@ -49,7 +49,7 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 	return metadata, nil
 }
 
-func (m *MetaMan) getForUpdate(id TaskId) (*Metadata, error) {
+func (m *MetaMan) GetForUpdate(id TaskId) (*Metadata, error) {
 	m.logger.Debug("getting for update metadata for task id %s", id)
 	lock, exist := m.taken[id]
 	if !exist {
@@ -75,7 +75,7 @@ type viewIterItem struct {
 	err      error
 }
 
-func (m *MetaMan) save(id TaskId, metadata *Metadata) error {
+func (m *MetaMan) Save(id TaskId, metadata *Metadata) error {
 	saveTo := ospath.Join(m.RootDir, id.String())
 	saveToTmp := saveTo + ".inpr"
 	m.logger.Debug("saving metadata for task id %s to %s", id, saveTo)
@@ -140,18 +140,20 @@ func (m *MetaMan) Add(id TaskId, md Metadata) error {
 	if _, err := m.View(id); err == nil {
 		return fmt.Errorf("metadata for task %s already exist", id)
 	}
-	return m.save(id, &md)
+	return m.Save(id, &md)
 }
 
 func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
-	md, err := m.getForUpdate(id)
+	m.logger.Debug("updating metadata %s", id)
+	md, err := m.GetForUpdate(id)
 	if err != nil {
 		return err
 	}
 	up(md)
-	return m.save(id, md)
+	return m.Save(id, md)
 }
 
 func (m *MetaMan) Remove(id TaskId) error {
+	m.logger.Debug("removing metadata for task id %s", id)
 	return os.Remove(ospath.Join(m.RootDir, id.String()))
 }

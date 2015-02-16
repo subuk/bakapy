@@ -37,7 +37,7 @@ func main() {
 	}
 
 	executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
-	job := bakapy.NewJob(jobName, jobConfig, config.Listen, spool, executor, metaman)
+	job := bakapy.NewJob(jobName, jobConfig, config.Storages[jobConfig.Storage], spool, executor, metaman)
 	if *FORCE_TASK_ID != "" {
 		if len(*FORCE_TASK_ID) != 36 {
 			fmt.Println("TaskId length must be 36 bytes")

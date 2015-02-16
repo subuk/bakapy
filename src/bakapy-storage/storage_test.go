@@ -1,8 +1,10 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -12,6 +14,14 @@ import (
 	"time"
 )
 
+func NewTestMetaMan() bakapy.MetaManager {
+	tmpdir, err := ioutil.TempDir("", "metamantest_")
+	if err != nil {
+		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
+	}
+	return bakapy.NewMetaMan(&bakapy.Config{MetadataDir: tmpdir})
+}
+
 type NullStorageProtocol struct {
 	readContentCalled bool
 	filename          string
@@ -20,8 +30,8 @@ type NullStorageProtocol struct {
 	readContentErr    error
 }
 
-func (p *NullStorageProtocol) ReadTaskId() (TaskId, error) {
-	return TaskId(p.taskId), nil
+func (p *NullStorageProtocol) ReadTaskId() (bakapy.TaskId, error) {
+	return bakapy.TaskId(p.taskId), nil
 }
 func (p *NullStorageProtocol) ReadFilename() (string, error) { return p.filename, nil }
 func (p *NullStorageProtocol) ReadContent(output io.Writer) (int64, error) {
@@ -35,8 +45,8 @@ type NullStorageProtocolErrorReadTaskId struct {
 	NullStorageProtocol
 }
 
-func (p *NullStorageProtocolErrorReadTaskId) ReadTaskId() (TaskId, error) {
-	return TaskId(""), errors.New("test error")
+func (p *NullStorageProtocolErrorReadTaskId) ReadTaskId() (bakapy.TaskId, error) {
+	return bakapy.TaskId(""), errors.New("test error")
 }
 
 type NullStorageProtocolErrorReadFilename struct {
@@ -49,9 +59,8 @@ func (p *NullStorageProtocolErrorReadFilename) ReadFilename() (string, error) {
 
 func TestStorage_HandleConnection_TaskIdReadErr(t *testing.T) {
 	protohandle := &NullStorageProtocolErrorReadTaskId{}
-	cfg := NewConfig()
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
 	err := storage.HandleConnection(protohandle)
 	if err == nil {
 		t.Fatal("error expected")
@@ -64,9 +73,8 @@ func TestStorage_HandleConnection_TaskIdReadErr(t *testing.T) {
 
 func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
-	cfg := NewConfig()
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
 	err := storage.HandleConnection(protohandle)
 	if err == nil {
 		t.Fatal("error expected")
@@ -79,11 +87,10 @@ func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 
 func TestStorage_HandleConnection_TaskAlreadyFinished(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
-	cfg := NewConfig()
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
 
-	md := Metadata{
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "cmd",
@@ -106,11 +113,10 @@ func TestStorage_HandleConnection_TaskAlreadyFinished(t *testing.T) {
 
 func TestStorage_HandleConnection_FilenameReadErr(t *testing.T) {
 	protohandle := &NullStorageProtocolErrorReadFilename{NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}}
-	cfg := NewConfig()
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
 
-	md := Metadata{
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "cmd",
@@ -133,14 +139,13 @@ func TestStorage_HandleConnection_FilenameReadErr(t *testing.T) {
 func TestStorage_HandleConnection_JobFinishWordWorks(t *testing.T) {
 	protohandle := &NullStorageProtocol{
 		taskId:   "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
-		filename: JOB_FINISH,
+		filename: bakapy.JOB_FINISH,
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "cmd",
@@ -164,12 +169,11 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 		filename: "hello.txt",
 		content:  []byte("testcontent"),
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "xxx",
@@ -185,7 +189,7 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 		t.Fatal("error", err)
 	}
 
-	expectedFilePath := path.Join(cfg.StorageDir, "test/wow", protohandle.filename+".gz")
+	expectedFilePath := path.Join(storageDir, "test/wow", protohandle.filename+".gz")
 	file, err := os.Open(expectedFilePath)
 	if err != nil {
 		t.Fatal("expected file open error:", err)
@@ -210,12 +214,11 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 		filename: "world.txt",
 		content:  []byte("test_ungz_content"),
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "xxx",
@@ -231,7 +234,7 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 		t.Fatal("error", err)
 	}
 
-	expectedFilePath := path.Join(cfg.StorageDir, "test/wow", protohandle.filename)
+	expectedFilePath := path.Join(storageDir, "test/wow", protohandle.filename)
 	fileContent, err := ioutil.ReadFile(expectedFilePath)
 	if err != nil {
 		t.Fatal("expected file read error:", err)
@@ -247,12 +250,11 @@ func TestStorage_HandleConnection_DestDirsMakeFailed(t *testing.T) {
 		taskId:   "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
 		filename: "world.txt",
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "xxx",
@@ -284,12 +286,11 @@ func TestStorage_HandleConnection_DestFileOpenFailed(t *testing.T) {
 		taskId:   "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c",
 		filename: "world.txt",
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "xxx",
@@ -321,12 +322,11 @@ func TestStorage_HandleConnection_ReadContentFailed(t *testing.T) {
 		filename:       "world.txt",
 		readContentErr: errors.New("test err"),
 	}
-	cfg := NewConfig()
-	cfg.StorageDir, _ = ioutil.TempDir("", "test_bakapy_storage")
-	defer os.RemoveAll(cfg.StorageDir)
-	storage := NewStorage(cfg, NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*MetaMan).RootDir)
-	md := Metadata{
+	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
+	defer os.RemoveAll(storageDir)
+	storage := NewStorage(storageDir, "", NewTestMetaMan())
+	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
 		Command:   "xxx",

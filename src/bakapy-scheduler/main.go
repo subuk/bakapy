@@ -10,7 +10,7 @@ import (
 )
 
 var logger = logging.MustGetLogger("bakapy.scheduler")
-var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
+var CONFIG_PATH = flag.String("config", "bakapy.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var TEST_CONFIG_ONLY = flag.Bool("test", false, "Check config and exit")
 
@@ -32,6 +32,8 @@ func main() {
 
 	scriptPool := bakapy.NewDirectoryScriptPool(config)
 	metaman := bakapy.NewMetaMan(config)
+	metamanRPC := bakapy.NewMetaRPCServer(metaman)
+	bakapy.ServeRPC(config.MetadataListen, config.Secret, metamanRPC)
 
 	var notificators []bakapy.Notificator
 	for _, ncConfig := range config.Notificators {
@@ -53,7 +55,7 @@ func main() {
 				logger.Critical("Starting job %s", jobName)
 				executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
 				job := bakapy.NewJob(
-					jobName, jobConfig, config.Listen,
+					jobName, jobConfig, config.Storages[jobConfig.Storage],
 					scriptPool, executor,
 					metaman,
 				)
@@ -85,5 +87,5 @@ func main() {
 	}
 
 	scheduler.Start()
-
+	<-(make(chan int))
 }

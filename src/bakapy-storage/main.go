@@ -12,7 +12,7 @@ import (
 )
 
 var logger = logging.MustGetLogger("bakapy.storage")
-var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
+var CONFIG_PATH = flag.String("config", "storage.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var TEST_CONFIG_ONLY = flag.Bool("test", false, "Check config and exit")
 
@@ -24,16 +24,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	config, err := bakapy.ParseConfig(*CONFIG_PATH)
+	config, err := ParseConfig(*CONFIG_PATH)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Configuration error: %s\n", err)
 		os.Exit(1)
 	}
 
-	logger.Debug(string(config.PrettyFmt()))
-
-	metaman := bakapy.NewMetaMan(config)
-	storage := bakapy.NewStorage(config, metaman)
+	metaman := bakapy.NewMetaManClient(config.MetadataAddr, config.Secret)
+	storage := NewStorage(config.Root, config.Listen, metaman)
 
 	if *TEST_CONFIG_ONLY {
 		return
@@ -51,7 +49,7 @@ func main() {
 	}()
 	go func() {
 		for {
-			err := bakapy.CleanupExpiredJobs(metaman, storage)
+			err := CleanupExpiredJobs(metaman, storage)
 			if err != nil {
 				logger.Warning("cleanup failed: %s", err.Error())
 			}
