@@ -99,7 +99,9 @@ func (job *Job) Run() {
 		ExpireTime: now.Add(job.cfg.MaxAge),
 	})
 	if err != nil {
-		job.logger.Critical("cannot add metadata: %s", err)
+		err = fmt.Errorf("cannot add metadata: %s", err)
+		job.logger.Critical(err.Error())
+		job.notify.MetadataAccessFailed(err)
 		return
 	}
 
@@ -111,7 +113,9 @@ func (job *Job) Run() {
 			md.Message = err.Error()
 		})
 		if updErr != nil {
-			job.logger.Critical("cannot set metadata error: %s", updErr.Error())
+			updErr = fmt.Errorf("cannot set metadata error: %s", updErr.Error())
+			job.logger.Critical(updErr.Error())
+			job.notify.MetadataAccessFailed(updErr)
 		}
 		return
 	}
@@ -145,13 +149,17 @@ func (job *Job) Run() {
 	})
 
 	if err != nil {
-		job.logger.Warning("cannot update metadata: %s", err)
+		err = fmt.Errorf("cannot update metadata: %s", err)
+		job.logger.Critical(err.Error())
+		job.notify.MetadataAccessFailed(err)
 		return
 	}
 
 	md, err := job.metaman.View(job.TaskId)
 	if err != nil {
-		job.logger.Warning("cannot get metadata for notification: %s", err)
+		err = fmt.Errorf("cannot get metadata for notification: %s", err)
+		job.logger.Warning(err.Error())
+		job.notify.MetadataAccessFailed(err)
 		return
 	}
 	job.logger.Debug("notification metadata: %s", md)
