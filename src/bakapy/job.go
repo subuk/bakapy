@@ -37,9 +37,19 @@ type Job struct {
 	cfg         *JobConfig
 	logger      *logging.Logger
 	metaman     MetaManager
+	notify      Notificator
 }
 
-func NewJob(name string, cfg *JobConfig, StorageAddr string, scripts BackupScriptPool, executor Executer, metaman MetaManager) *Job {
+func NewJob(
+	name string,
+	cfg *JobConfig,
+	StorageAddr string,
+	scripts BackupScriptPool,
+	executor Executer,
+	metaman MetaManager,
+	notify Notificator,
+) *Job {
+
 	taskId := TaskId(uuid.NewUUID().String())
 	loggerName := fmt.Sprintf("bakapy.job[%s][%s]", name, taskId)
 	return &Job{
@@ -51,6 +61,7 @@ func NewJob(name string, cfg *JobConfig, StorageAddr string, scripts BackupScrip
 		executor:    executor,
 		logger:      logging.MustGetLogger(loggerName),
 		metaman:     metaman,
+		notify:      notify,
 	}
 }
 
@@ -76,7 +87,7 @@ func (job *Job) getScript() ([]byte, error) {
 	return fullScript.Bytes(), nil
 }
 
-func (job *Job) Run() error {
+func (job *Job) Run() {
 	job.logger.Info("starting up")
 	now := time.Now().UTC()
 	err := job.metaman.Add(job.TaskId, Metadata{
@@ -88,45 +99,63 @@ func (job *Job) Run() error {
 		ExpireTime: now.Add(job.cfg.MaxAge),
 	})
 	if err != nil {
-		return fmt.Errorf("cannot add metadata: %s", err)
+		job.logger.Critical("cannot add metadata: %s", err)
+		return
 	}
+
 	script, err := job.getScript()
 	if err != nil {
-		job.logger.Warning("cannot get job script: %s", err.Error())
-		job.metaman.Update(job.TaskId, func(md *Metadata) {
+		err = fmt.Errorf("cannot get job script: %s", err)
+		job.logger.Critical(err.Error())
+		updErr := job.metaman.Update(job.TaskId, func(md *Metadata) {
 			md.Message = err.Error()
 		})
-		return err
+		if updErr != nil {
+			job.logger.Critical("cannot set metadata error: %s", updErr.Error())
+		}
+		return
 	}
 
 	output := new(bytes.Buffer)
 	errput := new(bytes.Buffer)
+	job.logger.Debug("execution started")
 	jobErr := job.executor.Execute(script, output, errput)
+	job.logger.Debug("execution finished: %s", jobErr)
+	if jobErr != nil {
+		job.logger.Warning("job failed: %s", jobErr.Error())
+	}
 
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
+	err = job.metaman.Update(job.TaskId, func(mtd *Metadata) {
+		job.logger.Debug("Updating task metadata %s", mtd)
+		mtd.EndTime = time.Now().UTC()
+		mtd.Output = output.Bytes()
+		mtd.Errput = errput.Bytes()
+		mtd.CalculateTotalSize()
 
-	if jobErr != nil {
-		mdErr := job.metaman.Update(job.TaskId, func(md *Metadata) {
-			md.Success = false
-			md.Message = jobErr.Error()
-			md.EndTime = time.Now().UTC()
-			md.Output = output.Bytes()
-			md.Errput = errput.Bytes()
-			md.CalculateTotalSize()
-		})
-		if mdErr != nil {
-			jobErr = fmt.Errorf("cannot save metadata %s. %s.", mdErr, jobErr)
+		if jobErr != nil {
+			mtd.Success = false
+			mtd.Message = jobErr.Error()
+		} else {
+			mtd.Success = true
+			mtd.Message = "OK"
 		}
-		return jobErr
+		job.logger.Debug("Updating task metadata done %s", mtd)
+	})
+
+	if err != nil {
+		job.logger.Warning("cannot update metadata: %s", err)
+		return
 	}
 
-	return job.metaman.Update(job.TaskId, func(md *Metadata) {
-		md.Success = true
-		md.Message = "OK"
-		md.EndTime = time.Now().UTC()
-		md.Output = output.Bytes()
-		md.Errput = errput.Bytes()
-		md.CalculateTotalSize()
-	})
+	md, err := job.metaman.View(job.TaskId)
+	if err != nil {
+		job.logger.Warning("cannot get metadata for notification: %s", err)
+		return
+	}
+	job.logger.Debug("notification metadata: %s", md)
+	if err := job.notify.JobFinished(md); err != nil {
+		job.logger.Warning("failed to run notificator %s: %s", job.notify.Name(), err)
+	}
 }

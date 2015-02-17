@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var CONFIG_PATH = flag.String("config", "/etc/bakapy/bakapy.conf", "Path to config file")
+var CONFIG_PATH = flag.String("config", "bakapy.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var JOB_NAME = flag.String("job", "REQUIRED", "Job name")
 var FORCE_TASK_ID = flag.String("taskid", "", "Use this task id for job")
@@ -26,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	metaman := bakapy.NewMetaMan(config)
+	metaman := bakapy.NewMetaManClient(config.MetadataListen, config.Secret)
 	spool := bakapy.NewDirectoryScriptPool(config)
 
 	jobName := *JOB_NAME
@@ -36,8 +36,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	notificators := bakapy.NewNotificatorPool()
+	for _, ncConfig := range config.Notificators {
+		nc := bakapy.NewScriptedNotificator(spool, ncConfig.Name, ncConfig.Params)
+		notificators.Add(nc)
+	}
+
+	storageAddr, exist := config.Storages[jobConfig.Storage]
+	if !exist {
+		fmt.Printf("Error: cannot find storage %s definition in config\n", jobConfig.Storage)
+		os.Exit(1)
+	}
 	executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
-	job := bakapy.NewJob(jobName, jobConfig, config.Storages[jobConfig.Storage], spool, executor, metaman)
+	job := bakapy.NewJob(
+		jobName, jobConfig, storageAddr,
+		spool, executor, metaman,
+		notificators,
+	)
 	if *FORCE_TASK_ID != "" {
 		if len(*FORCE_TASK_ID) != 36 {
 			fmt.Println("TaskId length must be 36 bytes")
@@ -45,9 +60,13 @@ func main() {
 		}
 		job.TaskId = bakapy.TaskId(*FORCE_TASK_ID)
 	}
-	if err := job.Run(); err != nil {
-		fmt.Printf("Job failed: %s", err)
+	job.Run()
+
+	md, err := metaman.View(job.TaskId)
+	if !md.Success {
+		fmt.Fprintf(os.Stderr, "job failed: %s, %s\n", md.Message, md)
 		os.Exit(1)
+	} else {
+		fmt.Println("Job finished")
 	}
-	fmt.Println("Job finished")
 }

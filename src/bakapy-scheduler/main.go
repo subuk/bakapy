@@ -35,51 +35,37 @@ func main() {
 	metamanRPC := bakapy.NewMetaRPCServer(metaman)
 	bakapy.ServeRPC(config.MetadataListen, config.Secret, metamanRPC)
 
-	var notificators []bakapy.Notificator
+	notificators := bakapy.NewNotificatorPool()
 	for _, ncConfig := range config.Notificators {
 		nc := bakapy.NewScriptedNotificator(scriptPool, ncConfig.Name, ncConfig.Params)
-		notificators = append(notificators, nc)
+		notificators.Add(nc)
 	}
 
 	scheduler := cron.New()
 	for jobName, jobConfig := range config.Jobs {
 		runSpec := jobConfig.RunAt.SchedulerString()
-		logger.Info("adding job %s{%s} to scheduler", jobName, runSpec)
 
 		if jobConfig.Disabled {
 			logger.Warning("job %s disabled, skipping", jobName)
 			continue
 		}
-		func(jobName string, jobConfig *bakapy.JobConfig, config *bakapy.Config) {
-			scheduler.AddFunc(runSpec, func() {
-				logger.Critical("Starting job %s", jobName)
-				executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
-				job := bakapy.NewJob(
-					jobName, jobConfig, config.Storages[jobConfig.Storage],
-					scriptPool, executor,
-					metaman,
-				)
-				err := job.Run()
-				if err != nil {
-					logger.Warning("job %s failed: %s", jobName, err)
-				}
-				md, err := metaman.View(job.TaskId)
-
-				if err != nil {
-					logger.Critical("cannot get metadata for finished job: %s", err)
-					return
-				}
-
-				for _, nc := range notificators {
-					logger.Debug("executing %s notificator", nc.Name())
-					if err := nc.JobFinished(md); err != nil {
-						logger.Warning("failed to execute %s notificator: %s", nc.Name(), err)
-					} else {
-						logger.Debug("notificator %s finished successfully", nc.Name())
-					}
-				}
-			})
-		}(jobName, jobConfig, config)
+		storageAddr, exist := config.Storages[jobConfig.Storage]
+		if !exist {
+			logger.Critical("cannot find storage %s definition in config", jobConfig.Storage)
+			os.Exit(1)
+		}
+		executor := bakapy.NewBashExecutor(jobConfig.Args, jobConfig.Host, jobConfig.Port, jobConfig.Sudo)
+		job := bakapy.NewJob(
+			jobName, jobConfig, storageAddr,
+			scriptPool, executor, metaman,
+			notificators,
+		)
+		logger.Info("adding job %s{%s} to scheduler", jobName, runSpec)
+		err := scheduler.AddJob(runSpec, job)
+		if err != nil {
+			logger.Critical("cannot schedule job %s: %s", jobName, err)
+			os.Exit(1)
+		}
 	}
 
 	if *TEST_CONFIG_ONLY {

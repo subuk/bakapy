@@ -63,3 +63,34 @@ func (s *ScriptedNotificator) JobFinished(md Metadata) error {
 func (s *ScriptedNotificator) Name() string {
 	return s.name
 }
+
+type NotificatorPool struct {
+	notificators []Notificator
+}
+
+func NewNotificatorPool() *NotificatorPool {
+	return &NotificatorPool{}
+}
+
+func (np *NotificatorPool) Add(n Notificator) {
+	np.notificators = append(np.notificators, n)
+}
+
+func (np *NotificatorPool) JobFinished(md Metadata) error {
+	for _, n := range np.notificators {
+		err := n.JobFinished(md)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (np *NotificatorPool) Name() string {
+	name := "NotificatorPool{"
+	for _, n := range np.notificators {
+		name += n.Name() + ","
+	}
+	name = name[:len(name)-1]
+	return name + "}"
+}
