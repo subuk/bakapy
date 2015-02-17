@@ -4,7 +4,6 @@ import (
 	"bakapy"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -14,12 +13,58 @@ import (
 	"time"
 )
 
-func NewTestMetaMan() bakapy.MetaManager {
-	tmpdir, err := ioutil.TempDir("", "metamantest_")
-	if err != nil {
-		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
+type TestMetaMan struct {
+	stor   map[bakapy.TaskId]bakapy.Metadata
+	addErr error
+}
+
+func NewTestMockMetaMan() *TestMetaMan {
+	return &TestMetaMan{
+		stor: make(map[bakapy.TaskId]bakapy.Metadata),
 	}
-	return bakapy.NewMetaMan(&bakapy.Config{MetadataDir: tmpdir})
+}
+
+func (mm *TestMetaMan) Keys() chan bakapy.TaskId {
+	ch := make(chan bakapy.TaskId)
+	go func() {
+		for key, _ := range mm.stor {
+			ch <- key
+		}
+		close(ch)
+	}()
+	return ch
+}
+
+func (mm *TestMetaMan) View(id bakapy.TaskId) (bakapy.Metadata, error) {
+	md, ok := mm.stor[id]
+	if !ok {
+		return bakapy.Metadata{}, errors.New("does not exist")
+	}
+	return md, nil
+}
+
+func (mm *TestMetaMan) Add(id bakapy.TaskId, md bakapy.Metadata) error {
+	md.TaskId = id
+	if mm.addErr == nil {
+		mm.stor[id] = md
+		return nil
+	}
+	return mm.addErr
+}
+
+func (mm *TestMetaMan) Update(id bakapy.TaskId, up func(*bakapy.Metadata)) error {
+	md, err := mm.View(id)
+	if err != nil {
+		return err
+	}
+	up(&md)
+	mm.stor[id] = md
+	return nil
+}
+
+func (mm *TestMetaMan) Remove(id bakapy.TaskId) error {
+	delete(mm.stor, id)
+	return nil
 }
 
 type NullStorageProtocol struct {
@@ -59,8 +104,7 @@ func (p *NullStorageProtocolErrorReadFilename) ReadFilename() (string, error) {
 
 func TestStorage_HandleConnection_TaskIdReadErr(t *testing.T) {
 	protohandle := &NullStorageProtocolErrorReadTaskId{}
-	storage := NewStorage("", "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMockMetaMan())
 	err := storage.HandleConnection(protohandle)
 	if err == nil {
 		t.Fatal("error expected")
@@ -73,13 +117,12 @@ func TestStorage_HandleConnection_TaskIdReadErr(t *testing.T) {
 
 func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
-	storage := NewStorage("", "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMockMetaMan())
 	err := storage.HandleConnection(protohandle)
 	if err == nil {
 		t.Fatal("error expected")
 	}
-	expectedError := "Cannot find task id 'a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c' in current job list, closing connection"
+	expectedError := "does not exist"
 	if err.Error() != expectedError {
 		t.Fatal("bad error:", err)
 	}
@@ -87,8 +130,7 @@ func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 
 func TestStorage_HandleConnection_TaskAlreadyFinished(t *testing.T) {
 	protohandle := &NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}
-	storage := NewStorage("", "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMockMetaMan())
 
 	md := bakapy.Metadata{
 		JobName:   "testjob",
@@ -113,8 +155,7 @@ func TestStorage_HandleConnection_TaskAlreadyFinished(t *testing.T) {
 
 func TestStorage_HandleConnection_FilenameReadErr(t *testing.T) {
 	protohandle := &NullStorageProtocolErrorReadFilename{NullStorageProtocol{taskId: "a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c"}}
-	storage := NewStorage("", "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage("", "", NewTestMockMetaMan())
 
 	md := bakapy.Metadata{
 		JobName:   "testjob",
@@ -143,8 +184,7 @@ func TestStorage_HandleConnection_JobFinishWordWorks(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
@@ -171,8 +211,7 @@ func TestStorage_HandleConnection_SaveGzip(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
@@ -216,8 +255,7 @@ func TestStorage_HandleConnection_SaveNotGzip(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
@@ -252,8 +290,7 @@ func TestStorage_HandleConnection_DestDirsMakeFailed(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
@@ -288,8 +325,7 @@ func TestStorage_HandleConnection_DestFileOpenFailed(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",
@@ -324,8 +360,7 @@ func TestStorage_HandleConnection_ReadContentFailed(t *testing.T) {
 	}
 	storageDir, _ := ioutil.TempDir("", "test_bakapy_storage")
 	defer os.RemoveAll(storageDir)
-	storage := NewStorage(storageDir, "", NewTestMetaMan())
-	defer os.RemoveAll(storage.metaman.(*bakapy.MetaMan).RootDir)
+	storage := NewStorage(storageDir, "", NewTestMockMetaMan())
 	md := bakapy.Metadata{
 		JobName:   "testjob",
 		Namespace: "test/wow",

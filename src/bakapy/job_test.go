@@ -3,8 +3,6 @@ package bakapy
 import (
 	"errors"
 	"io"
-	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 )
@@ -29,28 +27,93 @@ func (e *TestCustomExecutor) Execute(script []byte, output io.Writer, errput io.
 	return e.execute(script, output, errput)
 }
 
+type TestNotificator struct {
+	calledMd    *Metadata
+	calledMdErr error
+}
+
+func (t *TestNotificator) JobFinished(md Metadata) error {
+	t.calledMd = &md
+	return nil
+}
+
+func (t *TestNotificator) MetadataAccessFailed(err error) error {
+	t.calledMdErr = err
+	return nil
+}
+
+func (t *TestNotificator) Name() string {
+	return "test-notificator"
+}
+
+type TestMetaMan struct {
+	stor   map[TaskId]Metadata
+	addErr error
+}
+
+func NewTestMockMetaMan() *TestMetaMan {
+	return &TestMetaMan{
+		stor: make(map[TaskId]Metadata),
+	}
+}
+
+func (mm *TestMetaMan) Keys() chan TaskId {
+	ch := make(chan TaskId)
+	go func() {
+		for key, _ := range mm.stor {
+			ch <- key
+		}
+		close(ch)
+	}()
+	return ch
+}
+
+func (mm *TestMetaMan) View(id TaskId) (Metadata, error) {
+	md, ok := mm.stor[id]
+	if !ok {
+		return Metadata{}, errors.New("does not exist")
+	}
+	return md, nil
+}
+
+func (mm *TestMetaMan) Add(id TaskId, md Metadata) error {
+	md.TaskId = id
+	if mm.addErr == nil {
+		mm.stor[id] = md
+		return nil
+	}
+	return mm.addErr
+}
+
+func (mm *TestMetaMan) Update(id TaskId, up func(*Metadata)) error {
+	md, err := mm.View(id)
+	if err != nil {
+		return err
+	}
+	up(&md)
+	mm.stor[id] = md
+	return nil
+}
+
+func (mm *TestMetaMan) Remove(id TaskId) error {
+	delete(mm.stor, id)
+	return nil
+}
+
 func TestJob_Run_ExecutionOkMetadataSetted(t *testing.T) {
 	now := time.Now()
 	executor := &TestOkExecutor{}
 	maxAge, _ := time.ParseDuration("30m")
 	cfg := &JobConfig{Command: "utils.go", Namespace: "wow", Gzip: true, MaxAge: maxAge}
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal("cannot create temp dir:", err)
-	}
-	gcfg := &Config{MetadataDir: tmpdir}
-	metaman := NewMetaMan(gcfg)
-	defer os.RemoveAll(gcfg.MetadataDir)
+	metaman := NewTestMockMetaMan()
 	spool := &TestScriptPool{nil, nil, ""}
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
 
-	err = job.Run()
-	if err != nil {
-		t.Fatal("unexpected error", err)
-	}
+	job.Run()
 	m, err := metaman.View(job.TaskId)
 	if err != nil {
 		t.Fatal("cannot get job metadata:", err)
@@ -99,24 +162,16 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 	now := time.Now()
 	maxAge, _ := time.ParseDuration("30m")
 	executor := &TestFailExecutor{}
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal("cannot create temp dir:", err)
-	}
-	gcfg := &Config{MetadataDir: tmpdir}
-	metaman := NewMetaMan(gcfg)
-	defer os.RemoveAll(gcfg.MetadataDir)
+	metaman := NewTestMockMetaMan()
 	cfg := &JobConfig{Command: "utils.go", Namespace: "wow/fail", Gzip: true, MaxAge: maxAge}
 	spool := &TestScriptPool{nil, nil, ""}
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
 
-	err = job.Run()
-	if err == nil {
-		t.Fatal("error must not be nil")
-	}
+	job.Run()
 	m, err := metaman.View(job.TaskId)
 	if err != nil {
 		t.Fatal("cannot get metadata:", err)
@@ -154,52 +209,46 @@ func TestJob_Run_ExecutionFailedMetadataSetted(t *testing.T) {
 
 func TestJob_Run_FailedCannotAddMetadata(t *testing.T) {
 	executor := &TestOkExecutor{}
-	gcfg := &Config{MetadataDir: "/DOES_NOT_EXIST"}
-	metaman := NewMetaMan(gcfg)
+	metaman := NewTestMockMetaMan()
 	spool := &TestScriptPool{nil, nil, ""}
 	cfg := &JobConfig{}
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
-
-	err := job.Run()
-	if err.Error() != "cannot add metadata: mkdir /DOES_NOT_EXIST: permission denied" {
+	metaman.addErr = errors.New("test error wow are")
+	job.Run()
+	if err := notify.calledMdErr; err.Error() != "cannot add metadata: test error wow are" {
 		t.Fatal("bad err", err)
 	}
 }
 
 func TestJob_Run_FailedCannotGetScript(t *testing.T) {
 	executor := &TestOkExecutor{}
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal("cannot create temp dir:", err)
-	}
-	gcfg := &Config{MetadataDir: tmpdir}
-	defer os.RemoveAll(tmpdir)
-
-	metaman := NewMetaMan(gcfg)
+	metaman := NewTestMockMetaMan()
 	spool := &TestScriptPool{errors.New("test bad script"), nil, ""}
 	cfg := &JobConfig{Command: "wowcmd"}
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test_fail", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
 
-	err = job.Run()
-	if err.Error() != "cannot find backup script wowcmd: test bad script" {
-		t.Fatal("bad err", err)
+	job.Run()
+	md, err := metaman.View(job.TaskId)
+	if err != nil {
+		t.Fatal("unexpected err", err)
+	}
+	if md.Message != "cannot get job script: cannot find backup script wowcmd: test bad script" {
+		t.Fatal("bad err", md.Message)
 	}
 }
 
 func TestJob_Run_ExecutionOkMetadataTotalSizeCalculated(t *testing.T) {
-	tmpdir, _ := ioutil.TempDir("", "")
-	defer os.RemoveAll(tmpdir)
-
 	cfg := &JobConfig{}
-	gcfg := &Config{MetadataDir: tmpdir}
 
-	metaman := NewMetaMan(gcfg)
+	metaman := NewTestMockMetaMan()
 	spool := &TestScriptPool{nil, nil, ""}
 
 	releaseExecute := make(chan int)
@@ -209,20 +258,16 @@ func TestJob_Run_ExecutionOkMetadataTotalSizeCalculated(t *testing.T) {
 			return nil
 		},
 	}
-
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
 
 	waitJobRun := make(chan int)
 	go func() {
 		defer close(waitJobRun)
-		err := job.Run()
-		if err != nil {
-			t.Fatal("unexpected error", err)
-			return
-		}
+		job.Run()
 		md, err := metaman.View(job.TaskId)
 		if err != nil {
 			t.Fatal("unexpected error", err)
@@ -257,13 +302,9 @@ func TestJob_Run_ExecutionOkMetadataTotalSizeCalculated(t *testing.T) {
 }
 
 func TestJob_Run_ExecutionFailedMetadataTotalSizeCalculated(t *testing.T) {
-	tmpdir, _ := ioutil.TempDir("", "")
-	defer os.RemoveAll(tmpdir)
-
 	cfg := &JobConfig{}
-	gcfg := &Config{MetadataDir: tmpdir}
 
-	metaman := NewMetaMan(gcfg)
+	metaman := NewTestMockMetaMan()
 	spool := &TestScriptPool{nil, nil, ""}
 
 	releaseExecute := make(chan int)
@@ -273,24 +314,16 @@ func TestJob_Run_ExecutionFailedMetadataTotalSizeCalculated(t *testing.T) {
 			return errors.New("test error")
 		},
 	}
-
+	notify := &TestNotificator{}
 	job := NewJob(
 		"test", cfg, "127.0.0.1:9999",
-		spool, executor, metaman,
+		spool, executor, metaman, notify,
 	)
 
 	waitJobRun := make(chan int)
 	go func() {
 		defer close(waitJobRun)
-		err := job.Run()
-		if err == nil {
-			t.Fatal("error expected", err)
-			return
-		}
-		if err.Error() != "test error" {
-			t.Fatal("bad error", err)
-			return
-		}
+		job.Run()
 		md, err := metaman.View(job.TaskId)
 		if err != nil {
 			t.Fatal("unexpected error", err)

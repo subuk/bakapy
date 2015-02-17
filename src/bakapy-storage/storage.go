@@ -214,6 +214,7 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 	stor.logger.Debug("done")
 	if updateErr != nil {
 		stor.logger.Critical("cannot save metadata: %s", updateErr.Error())
+		return updateErr
 	}
 	return connErr
 }
