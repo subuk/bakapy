@@ -49,10 +49,10 @@ func (m *MetaMan) lockId(id TaskId) {
 func (m *MetaMan) unLockId(id TaskId) {
 	m.Lock()
 	lock, exist := m.taken[id]
-	if exist {
-		lock.Unlock()
-		// delete(m.taken, id)
+	if !exist {
+		panic(fmt.Errorf("id %s not locked", id))
 	}
+	lock.Unlock()
 	m.Unlock()
 }
 
@@ -141,8 +141,6 @@ func (m *MetaMan) Keys() chan TaskId {
 }
 
 func (m *MetaMan) View(id TaskId) (Metadata, error) {
-	m.lockId(id)
-	defer m.unLockId(id)
 	md, err := m.get(id)
 	if err != nil {
 		return Metadata{}, err
@@ -152,25 +150,17 @@ func (m *MetaMan) View(id TaskId) (Metadata, error) {
 
 func (m *MetaMan) Add(id TaskId, md Metadata) error {
 	m.logger.Debug("adding metadata for task id %s", id)
+	m.lockId(id)
 	md.TaskId = id
 	if _, err := m.View(id); err == nil {
 		return fmt.Errorf("metadata for task %s already exist", id)
 	}
-	m.lockId(id)
 	return m.Save(id, &md)
-}
-
-func (m *MetaMan) Update(id TaskId, up func(m *Metadata)) error {
-	m.logger.Debug("updating metadata %s", id)
-	md, err := m.GetForUpdate(id)
-	if err != nil {
-		return err
-	}
-	up(md)
-	return m.Save(id, md)
 }
 
 func (m *MetaMan) Remove(id TaskId) error {
 	m.logger.Debug("removing metadata for task id %s", id)
+	m.lockId(id)
+	defer m.unLockId(id)
 	return os.Remove(ospath.Join(m.RootDir, id.String()))
 }
