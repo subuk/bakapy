@@ -31,9 +31,10 @@ func main() {
 	logger.Debug(string(config.PrettyFmt()))
 
 	scriptPool := bakapy.NewDirectoryScriptPool(config)
-	metaman := bakapy.NewMetaMan(config)
-	metamanRPC := bakapy.NewMetaRPCServer(metaman)
-	bakapy.ServeRPC(config.MetadataListen, config.Secret, metamanRPC)
+	metamanRPC := bakapy.NewMetaRPCServer(bakapy.NewMetaMan(config))
+	go bakapy.ServeRPC(config.MetadataListen, config.Secret, metamanRPC)
+
+	metaman := bakapy.NewMetaManClient(config.MetadataListen, config.Secret)
 
 	notificators := bakapy.NewNotificatorPool()
 	for _, ncConfig := range config.Notificators {
