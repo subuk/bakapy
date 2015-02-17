@@ -132,19 +132,16 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 	if err != nil {
 		return fmt.Errorf("cannot read task id: %s. closing connection", err)
 	}
-	metadata, err := stor.metaman.View(taskId)
-	if err != nil {
-		return fmt.Errorf("Cannot find task id '%s' in current job list, closing connection", taskId)
-	}
 
-	if !metadata.EndTime.IsZero() {
-		return fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
-	}
-
-	stor.logger.Debug("Found metadata %s", metadata)
-
+	stor.logger.Debug("updating metadata and writing file")
 	var connErr error
 	updateErr := stor.metaman.Update(taskId, func(md *bakapy.Metadata) {
+		stor.logger.Debug("updating metadata", md)
+
+		if !md.EndTime.IsZero() {
+			connErr = fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
+			return
+		}
 
 		filename, err := conn.ReadFilename()
 		if err != nil {
@@ -159,11 +156,11 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 
 		fileSavePath := path.Join(
 			stor.RootDir,
-			metadata.Namespace,
+			md.Namespace,
 			filename,
 		)
 
-		if metadata.Gzip {
+		if md.Gzip {
 			fileSavePath += ".gz"
 		}
 
@@ -187,7 +184,7 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 
 		var file io.WriteCloser
 		var gzWriter io.WriteCloser
-		if metadata.Gzip {
+		if md.Gzip {
 			gzWriter = gzip.NewWriter(fd)
 			file = gzWriter
 		} else {
@@ -202,7 +199,7 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 		}
 
 		stream.Flush()
-		if metadata.Gzip {
+		if md.Gzip {
 			gzWriter.Close()
 		}
 		fd.Close()
@@ -212,7 +209,9 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 		fileMeta.EndTime = time.Now()
 
 		md.Files = append(md.Files, fileMeta)
+		stor.logger.Debug("updating metadata done: %s", md)
 	})
+	stor.logger.Debug("done")
 	if updateErr != nil {
 		stor.logger.Critical("cannot save metadata: %s", updateErr.Error())
 	}

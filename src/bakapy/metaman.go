@@ -35,8 +35,35 @@ func NewMetaMan(cfg *Config) *MetaMan {
 	}
 }
 
+func (m *MetaMan) lockId(id TaskId) {
+	m.Lock()
+	lock, exist := m.taken[id]
+	if !exist {
+		lock = &sync.Mutex{}
+		m.taken[id] = lock
+	}
+	m.Unlock()
+	lock.Lock()
+}
+
+func (m *MetaMan) unLockId(id TaskId) {
+	m.Lock()
+	lock, exist := m.taken[id]
+	if exist {
+		lock.Unlock()
+		// delete(m.taken, id)
+	}
+	m.Unlock()
+}
+
 func (m *MetaMan) get(id TaskId) (*Metadata, error) {
-	data, err := ioutil.ReadFile(ospath.Join(m.RootDir, id.String()))
+	filePath := ospath.Join(m.RootDir, id.String())
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -51,34 +78,23 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 
 func (m *MetaMan) GetForUpdate(id TaskId) (*Metadata, error) {
 	m.logger.Debug("getting for update metadata for task id %s", id)
-	lock, exist := m.taken[id]
-	if !exist {
-		lock = new(sync.Mutex)
-		m.Lock()
-		m.taken[id] = lock
-		m.Unlock()
-	}
-	lock.Lock()
+
+	m.lockId(id)
+
 	data, err := m.get(id)
 	if err != nil {
-		lock.Unlock()
-		m.Lock()
-		delete(m.taken, id)
-		m.Unlock()
+		m.unLockId(id)
 		return nil, err
 	}
 	return data, nil
 }
 
-type viewIterItem struct {
-	metadata *Metadata
-	err      error
-}
-
 func (m *MetaMan) Save(id TaskId, metadata *Metadata) error {
+	defer m.unLockId(id)
 	saveTo := ospath.Join(m.RootDir, id.String())
 	saveToTmp := saveTo + ".inpr"
 	m.logger.Debug("saving metadata for task id %s to %s", id, saveTo)
+	m.logger.Debug("%s", metadata)
 
 	err := os.MkdirAll(ospath.Dir(saveTo), 0750)
 	if err != nil {
@@ -88,26 +104,24 @@ func (m *MetaMan) Save(id TaskId, metadata *Metadata) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
 	jsonData, err := json.Marshal(metadata)
 	if err != nil {
-		return err
-	}
-	_, err = io.Copy(file, bytes.NewReader(jsonData))
-	if err != nil {
+		file.Close()
 		return err
 	}
 
+	_, err = io.Copy(file, bytes.NewReader(jsonData))
+	if err != nil {
+		file.Close()
+		return err
+	}
+	file.Close()
 	err = os.Rename(saveToTmp, saveTo)
 	if err != nil {
 		return err
 	}
-	if lock, exist := m.taken[id]; exist {
-		lock.Unlock()
-		m.Lock()
-		delete(m.taken, id)
-		m.Unlock()
-	}
+
 	return nil
 }
 
@@ -127,6 +141,8 @@ func (m *MetaMan) Keys() chan TaskId {
 }
 
 func (m *MetaMan) View(id TaskId) (Metadata, error) {
+	m.lockId(id)
+	defer m.unLockId(id)
 	md, err := m.get(id)
 	if err != nil {
 		return Metadata{}, err
@@ -140,6 +156,7 @@ func (m *MetaMan) Add(id TaskId, md Metadata) error {
 	if _, err := m.View(id); err == nil {
 		return fmt.Errorf("metadata for task %s already exist", id)
 	}
+	m.lockId(id)
 	return m.Save(id, &md)
 }
 

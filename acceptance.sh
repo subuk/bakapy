@@ -13,12 +13,12 @@ for runTest in $(find acceptance/ -name 'run.sh');do
         testRet=$?
     fi
 
-    test -x clean.sh && ./clean.sh
     if [ "$testRet" != 0 ];then
         echo "fail	$(dirname $runTest). See output below."
         echo -e "$testOutput"
         exit 1
     fi
+    test -x clean.sh && ./clean.sh
     popd >/dev/null
     echo "ok	$(dirname $runTest)"
 done

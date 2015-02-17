@@ -24,6 +24,8 @@ func NewMetaManClient(serverAddr, secret string) *MetaManClient {
 }
 
 func (mmc *MetaManClient) call(serviceMethod string, args interface{}, reply interface{}) error {
+	mmc.logger.Debug("%s: call", serviceMethod)
+	defer mmc.logger.Debug("%s: return", serviceMethod)
 auth:
 	if mmc.client == nil {
 		conn, err := net.Dial("tcp", mmc.serverAddr)
