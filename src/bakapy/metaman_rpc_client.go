@@ -13,6 +13,7 @@ type MetaManClient struct {
 	serverAddr string
 	logger     *logging.Logger
 	secret     string
+	connId     string
 }
 
 func NewMetaManClient(serverAddr, secret string) *MetaManClient {
@@ -37,17 +38,18 @@ auth:
 		if err != nil {
 			return fmt.Errorf("cannot write auth request: %s", err)
 		}
-		authResponse := make([]byte, 3)
+		authResponse := make([]byte, 36)
 		_, err = io.ReadFull(conn, authResponse)
 		if err != nil {
 			return fmt.Errorf("cannot read auth response: %s", err)
 		}
-		if string(authResponse) != "YES" {
+		if string(authResponse) == "00000000-0000-0000-0000-000000000000" {
 			return fmt.Errorf("auth failed: %s", authResponse)
 		}
 
 		mmc.client = rpc.NewClient(conn)
-		mmc.logger.Debug("rpc connection established")
+		mmc.connId = string(authResponse)
+		mmc.logger.Debug("rpc connection established with connection id %s", mmc.connId)
 	}
 
 	err := mmc.client.Call(serviceMethod, args, reply)
@@ -93,12 +95,17 @@ func (mmc *MetaManClient) Add(id TaskId, md Metadata) error {
 func (mmc *MetaManClient) Update(id TaskId, up func(*Metadata)) error {
 	noreply := false
 	md := &Metadata{}
-	err := mmc.call("MetaRPCServer.GetForUpdate", id, md)
+	args := &RPCUpdateArg{
+		TaskId: &id,
+		ConnId: &mmc.connId,
+	}
+	err := mmc.call("MetaRPCServer.GetForUpdate", args, md)
 	if err != nil {
 		return fmt.Errorf("cannot get metadata for update: %s", err)
 	}
 	up(md)
-	return mmc.call("MetaRPCServer.Save", md, &noreply)
+	args.Metadata = md
+	return mmc.call("MetaRPCServer.Save", args, &noreply)
 }
 
 func (mmc *MetaManClient) Remove(id TaskId) error {

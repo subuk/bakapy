@@ -164,3 +164,7 @@ func (m *MetaMan) Remove(id TaskId) error {
 	defer m.unLockId(id)
 	return os.Remove(ospath.Join(m.RootDir, id.String()))
 }
+
+func (m *MetaMan) CancelUpdate(id TaskId) {
+	m.unLockId(id)
+}

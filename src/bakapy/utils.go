@@ -1,6 +1,7 @@
 package bakapy
 
 import (
+	"code.google.com/p/go-uuid/uuid"
 	"crypto/sha256"
 	"fmt"
 	"github.com/op/go-logging"
@@ -36,13 +37,12 @@ func Sha256String(s string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func ServeRPC(listen, secret string, exports ...interface{}) {
+func ServeRPC(listen, secret string, server *MetaRPCServer) {
 	logger := logging.MustGetLogger("bakapy.rpc")
-	for _, rcvr := range exports {
-		if err := rpc.Register(rcvr); err != nil {
-			panic(err)
-		}
+	if err := rpc.Register(server); err != nil {
+		panic(err)
 	}
+
 	ln, err := net.Listen("tcp", listen)
 	if err != nil {
 		panic(fmt.Errorf("cannot bind metadata rpc server: %s", err))
@@ -64,18 +64,24 @@ func ServeRPC(listen, secret string, exports ...interface{}) {
 
 			if string(authRequest) != expectedSecret {
 				logger.Warning("failed to authenticate client %s, bad secret %s", conn.RemoteAddr().String(), authRequest)
-				io.WriteString(conn, "NOO")
+				io.WriteString(conn, "00000000-0000-0000-0000-000000000000")
 				conn.Close()
 				continue
 			}
 			logger.Info("authentication successfull for %s", conn.RemoteAddr().String())
-			_, err = io.WriteString(conn, "YES")
+			connId := uuid.New()
+			_, err = io.WriteString(conn, connId)
 			if err != nil {
 				logger.Warning("cannot send successfull authentication message to client: %s", err)
 				conn.Close()
 				continue
 			}
-			go rpc.ServeConn(conn)
+			go func(connId string) {
+				logger.Debug("serving connection for client %s", conn.RemoteAddr().String())
+				rpc.ServeConn(conn)
+				server.CleanupConn(connId)
+				logger.Debug("connection for client %s closed", conn.RemoteAddr().String())
+			}(connId)
 		}
 	}
 }
