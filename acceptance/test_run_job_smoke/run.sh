@@ -9,9 +9,15 @@ bakapy-scheduler &>scheduler.log &
 schedulerPid="$!"
 
 echo -n "Waiting scheduler to start ..."
+i=0
 while true; do
+    let i+=1
     netstat -tlnp 2>/dev/null |awk '{print $4}' |grep -q :19875$ && break
     echo -n "."
+    if [ "$i" -gt 50 ];then
+        echo "Error: timeout"
+        exit 1
+    fi
     sleep 0.1
 done
 echo " OK"
@@ -20,9 +26,15 @@ bakapy-storage &>storage.log &
 storagePid="$!"
 
 echo -n "Waiting storage to start ..."
+i=0
 while true; do
+    let i+=1
     netstat -tlnp 2>/dev/null |awk '{print $4}' |grep -q :19876$ && break
     echo -n "."
+    if [ "$i" -gt 50 ];then
+        echo "Error: timeout"
+        exit 1
+    fi
     sleep 0.1
 done
 echo " OK"
