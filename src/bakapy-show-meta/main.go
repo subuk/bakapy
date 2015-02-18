@@ -2,6 +2,7 @@ package main
 
 import (
 	"bakapy"
+	"bakapy/meta"
 	"flag"
 	"fmt"
 	"os"
@@ -35,14 +36,13 @@ func main() {
 		fmt.Println(USAGE)
 		os.Exit(1)
 	}
-
 	config, err := bakapy.ParseConfig(*CONFIG_PATH)
 	if err != nil {
 		fmt.Println("Cannot read config", err)
 		os.Exit(1)
 	}
 
-	metaman := bakapy.NewMetaMan(config)
+	metaman := meta.NewMetaManClient(config.MetadataListen, config.Secret)
 	taskId := bakapy.TaskId(flag.Arg(0))
 
 	meta, err := metaman.View(taskId)

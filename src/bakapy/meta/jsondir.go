@@ -1,6 +1,7 @@
-package bakapy
+package meta
 
 import (
+	"bakapy"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,30 +13,22 @@ import (
 	"sync"
 )
 
-type MetaManager interface {
-	Keys() chan TaskId
-	View(id TaskId) (Metadata, error)
-	Add(id TaskId, md Metadata) error
-	Update(id TaskId, up func(m *Metadata)) error
-	Remove(id TaskId) error
-}
-
-type MetaMan struct {
+type JSONDir struct {
 	sync.Mutex
 	RootDir string
-	taken   map[TaskId]*sync.Mutex
+	taken   map[bakapy.TaskId]*sync.Mutex
 	logger  *logging.Logger
 }
 
-func NewMetaMan(cfg *Config) *MetaMan {
-	return &MetaMan{
-		RootDir: cfg.MetadataDir,
-		taken:   make(map[TaskId]*sync.Mutex),
-		logger:  logging.MustGetLogger("bakapy.metaman"),
+func NewJSONDir(root string) *JSONDir {
+	return &JSONDir{
+		RootDir: root,
+		taken:   make(map[bakapy.TaskId]*sync.Mutex),
+		logger:  logging.MustGetLogger("bakapy.JSONDir"),
 	}
 }
 
-func (m *MetaMan) lockId(id TaskId) {
+func (m *JSONDir) lockId(id bakapy.TaskId) {
 	m.Lock()
 	lock, exist := m.taken[id]
 	if !exist {
@@ -46,7 +39,7 @@ func (m *MetaMan) lockId(id TaskId) {
 	lock.Lock()
 }
 
-func (m *MetaMan) unLockId(id TaskId) {
+func (m *JSONDir) unLockId(id bakapy.TaskId) {
 	m.Lock()
 	lock, exist := m.taken[id]
 	if !exist {
@@ -56,7 +49,7 @@ func (m *MetaMan) unLockId(id TaskId) {
 	m.Unlock()
 }
 
-func (m *MetaMan) get(id TaskId) (*Metadata, error) {
+func (m *JSONDir) get(id bakapy.TaskId) (*bakapy.Metadata, error) {
 	filePath := ospath.Join(m.RootDir, id.String())
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -68,7 +61,7 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 		return nil, err
 	}
 
-	metadata := &Metadata{}
+	metadata := &bakapy.Metadata{}
 	err = json.Unmarshal(data, metadata)
 	if err != nil {
 		return nil, err
@@ -76,7 +69,7 @@ func (m *MetaMan) get(id TaskId) (*Metadata, error) {
 	return metadata, nil
 }
 
-func (m *MetaMan) GetForUpdate(id TaskId) (*Metadata, error) {
+func (m *JSONDir) GetForUpdate(id bakapy.TaskId) (*bakapy.Metadata, error) {
 	m.logger.Debug("getting for update metadata for task id %s", id)
 
 	m.lockId(id)
@@ -89,7 +82,7 @@ func (m *MetaMan) GetForUpdate(id TaskId) (*Metadata, error) {
 	return data, nil
 }
 
-func (m *MetaMan) Save(id TaskId, metadata *Metadata) error {
+func (m *JSONDir) Save(id bakapy.TaskId, metadata *bakapy.Metadata) error {
 	defer m.unLockId(id)
 	saveTo := ospath.Join(m.RootDir, id.String())
 	saveToTmp := saveTo + ".inpr"
@@ -125,30 +118,30 @@ func (m *MetaMan) Save(id TaskId, metadata *Metadata) error {
 	return nil
 }
 
-func (m *MetaMan) Keys() chan TaskId {
+func (m *JSONDir) Keys() chan bakapy.TaskId {
 	dir, err := ioutil.ReadDir(m.RootDir)
 	if err != nil {
 		panic(fmt.Errorf("cannot list metadata directory: %s", err))
 	}
-	ch := make(chan TaskId, 100)
+	ch := make(chan bakapy.TaskId, 100)
 	go func() {
 		for _, f := range dir {
-			ch <- TaskId(f.Name())
+			ch <- bakapy.TaskId(f.Name())
 		}
 		close(ch)
 	}()
 	return ch
 }
 
-func (m *MetaMan) View(id TaskId) (Metadata, error) {
+func (m *JSONDir) View(id bakapy.TaskId) (bakapy.Metadata, error) {
 	md, err := m.get(id)
 	if err != nil {
-		return Metadata{}, err
+		return bakapy.Metadata{}, err
 	}
 	return *md, err
 }
 
-func (m *MetaMan) Add(id TaskId, md Metadata) error {
+func (m *JSONDir) Add(id bakapy.TaskId, md bakapy.Metadata) error {
 	m.logger.Debug("adding metadata for task id %s", id)
 	m.lockId(id)
 	md.TaskId = id
@@ -158,13 +151,13 @@ func (m *MetaMan) Add(id TaskId, md Metadata) error {
 	return m.Save(id, &md)
 }
 
-func (m *MetaMan) Remove(id TaskId) error {
+func (m *JSONDir) Remove(id bakapy.TaskId) error {
 	m.logger.Debug("removing metadata for task id %s", id)
 	m.lockId(id)
 	defer m.unLockId(id)
 	return os.Remove(ospath.Join(m.RootDir, id.String()))
 }
 
-func (m *MetaMan) CancelUpdate(id TaskId) {
+func (m *JSONDir) CancelUpdate(id bakapy.TaskId) {
 	m.unLockId(id)
 }

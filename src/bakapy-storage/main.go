@@ -2,6 +2,7 @@ package main
 
 import (
 	"bakapy"
+	"bakapy/meta"
 	"flag"
 	"fmt"
 	"github.com/op/go-logging"
@@ -30,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	metaman := bakapy.NewMetaManClient(config.MetadataAddr, config.Secret)
+	metaman := meta.NewMetaManClient(config.MetadataAddr, config.Secret)
 	storage := NewStorage(config.Root, config.Listen, metaman)
 
 	if *TEST_CONFIG_ONLY {

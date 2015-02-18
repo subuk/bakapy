@@ -1,4 +1,4 @@
-package bakapy
+package meta
 
 import (
 	"bytes"
