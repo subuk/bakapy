@@ -11,14 +11,13 @@ import (
 )
 
 type Config struct {
-	IncludeJobs    []string `yaml:"include_jobs"`
-	MetadataDir    string   `yaml:"metadata_dir"`
-	MetadataListen string   `yaml:"metadata_listen"`
-	CommandDir     string   `yaml:"script_dir"`
-	Storages       map[string]string
-	Notificators   []NotificatorConfig
-	Jobs           map[string]*JobConfig
-	Secret         string
+	IncludeJobs  []string `yaml:"include_jobs"`
+	MetadataAddr string   `yaml:"metadata_addr"`
+	CommandDir   string   `yaml:"script_dir"`
+	Storages     map[string]string
+	Notificators []NotificatorConfig
+	Jobs         map[string]*JobConfig
+	Secret       string
 }
 
 type NotificatorConfig struct {

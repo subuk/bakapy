@@ -2,7 +2,6 @@ package main
 
 import (
 	"bakapy"
-	"bakapy/meta"
 	"flag"
 	"fmt"
 	"os"
@@ -26,7 +25,7 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	metaman := meta.NewMetaManClient(config.MetadataListen, config.Secret)
+	metaman := bakapy.NewMetaManClient(config.MetadataAddr, config.Secret)
 	spool := bakapy.NewDirectoryScriptPool(config)
 
 	jobName := *JOB_NAME

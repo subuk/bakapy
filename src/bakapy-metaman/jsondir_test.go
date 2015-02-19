@@ -1,4 +1,4 @@
-package meta
+package main
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 var ADDOK_EXPECTED_CONTENT = []byte(`{"JobName":"test","Gzip":false,"Namespace":"ns","TaskId":"123","Command":"cmd","Success":false,"Message":"","TotalSize":0,"StartTime":"2015-02-12T22:07:54.271257193Z","EndTime":"0001-01-01T00:00:00Z","ExpireTime":"2015-02-12T22:07:54.271258193Z","Files":null,"Pid":0,"RetCode":0,"Script":null,"Output":null,"Errput":null,"Config":{"Sudo":false,"Disabled":false,"Gzip":false,"MaxAgeDays":0,"MaxAge":0,"Namespace":"","Host":"","Port":0,"Command":"","Args":null,"RunAt":{"Second":"","Minute":"","Hour":"","Day":"","Month":"","Weekday":""}}}`)
 
-func NewTestMetaMan() *MetaMan {
+func NewTestJSONDir() *MetaMan {
 	tmpdir, err := ioutil.TempDir("", "metamantest_")
 	if err != nil {
 		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
@@ -18,8 +18,8 @@ func NewTestMetaMan() *MetaMan {
 	return NewMetaMan(&Config{MetadataDir: tmpdir})
 }
 
-func TestMetaMan_AddOk(t *testing.T) {
-	mm := NewTestMetaMan()
+func TestJSONDir_AddOk(t *testing.T) {
+	mm := NewTestJSONDir()
 	defer os.RemoveAll(mm.RootDir)
 	md := Metadata{
 		JobName:   "test",
@@ -38,8 +38,8 @@ func TestMetaMan_AddOk(t *testing.T) {
 
 }
 
-func TestMetaMan_AddAlreadyExist(t *testing.T) {
-	mm := NewTestMetaMan()
+func TestJSONDir_AddAlreadyExist(t *testing.T) {
+	mm := NewTestJSONDir()
 	defer os.RemoveAll(mm.RootDir)
 	md := Metadata{
 		JobName:   "test",
@@ -57,8 +57,8 @@ func TestMetaMan_AddAlreadyExist(t *testing.T) {
 
 }
 
-func TestMetaMan_RemoveOk(t *testing.T) {
-	mm := NewTestMetaMan()
+func TestJSONDir_RemoveOk(t *testing.T) {
+	mm := NewTestJSONDir()
 	defer os.RemoveAll(mm.RootDir)
 	f, err := os.Create(mm.RootDir + "/testfile")
 	if err != nil {
@@ -73,8 +73,8 @@ func TestMetaMan_RemoveOk(t *testing.T) {
 	}
 }
 
-func TestMetaMan_KeysNoDirectory(t *testing.T) {
-	mm := NewTestMetaMan()
+func TestJSONDir_KeysNoDirectory(t *testing.T) {
+	mm := NewTestJSONDir()
 	os.RemoveAll(mm.RootDir)
 
 	defer func() {
@@ -90,8 +90,8 @@ func TestMetaMan_KeysNoDirectory(t *testing.T) {
 	mm.Keys()
 }
 
-func TestMetaMan_KeysOk(t *testing.T) {
-	mm := NewTestMetaMan()
+func TestJSONDir_KeysOk(t *testing.T) {
+	mm := NewTestJSONDir()
 	rootDir := mm.RootDir
 	defer os.RemoveAll(rootDir)
 	os.Create(rootDir + "/wow1")

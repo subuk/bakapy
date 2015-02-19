@@ -1,4 +1,4 @@
-package meta
+package main
 
 import (
 	"bakapy"

@@ -1,6 +1,8 @@
 package bakapy
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"github.com/op/go-logging"
 	"log/syslog"
 	"os"
@@ -23,4 +25,10 @@ func SetupLogging(logLevel string) error {
 	}
 	logging.SetLevel(level, "")
 	return nil
+}
+
+func SHA256String(s string) string {
+	h := sha256.New()
+	h.Write([]byte(s))
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

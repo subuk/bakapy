@@ -1,9 +1,8 @@
-package meta
+package main
 
 import (
 	"bakapy"
 	"code.google.com/p/go-uuid/uuid"
-	"crypto/sha256"
 	"fmt"
 	"github.com/op/go-logging"
 	"io"
@@ -23,6 +22,7 @@ type RPCUpdateArg struct {
 	ConnId   *string
 	TaskId   *bakapy.TaskId
 	Metadata *bakapy.Metadata
+	FileMeta *bakapy.MetadataFileEntry
 }
 
 func NewJSONDirServer(listen, secret, root string) *JSONDirServer {
@@ -30,6 +30,8 @@ func NewJSONDirServer(listen, secret, root string) *JSONDirServer {
 		logger:        logging.MustGetLogger("bakapy.metaman_rpc_server"),
 		metaman:       NewJSONDir(root),
 		pendingUpdate: make(map[string]bakapy.TaskId),
+		listen:        listen,
+		secret:        secret,
 	}
 	return s
 }
@@ -106,6 +108,23 @@ func (mms *JSONDirServer) Save(args *RPCUpdateArg, noreply *bool) error {
 	return mms.metaman.Save(args.Metadata.TaskId, args.Metadata)
 }
 
+func (mms *JSONDirServer) AddFile(args *RPCUpdateArg, noreply *bool) error {
+	if args.FileMeta == nil {
+		return fmt.Errorf("args.FileMeta required")
+	}
+	if args.TaskId == nil {
+		return fmt.Errorf("args.TaskId required")
+	}
+	fm := *args.FileMeta
+	id := *args.TaskId
+	md, err := mms.metaman.GetForUpdate(id)
+	if err != nil {
+		return err
+	}
+	md.Files = append(md.Files, fm)
+	return mms.metaman.Save(id, md)
+}
+
 func (mms *JSONDirServer) Remove(id bakapy.TaskId, noreply *bool) error {
 	mms.logger.Debug("Remove: called")
 	defer mms.logger.Debug("Remove: return")
@@ -132,7 +151,7 @@ func (mms *JSONDirServer) Serve() {
 		panic(fmt.Errorf("cannot bind metadata rpc server: %s", err))
 	}
 
-	expectedSecret := sha256String(mms.secret)
+	expectedSecret := bakapy.SHA256String(mms.secret)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -170,10 +189,4 @@ func (mms *JSONDirServer) Serve() {
 		}(connId)
 
 	}
-}
-
-func sha256String(s string) string {
-	h := sha256.New()
-	h.Write([]byte(s))
-	return fmt.Sprintf("%x", h.Sum(nil))
 }

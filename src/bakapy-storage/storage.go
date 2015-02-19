@@ -133,88 +133,77 @@ func (stor *LocalFileStorage) HandleConnection(conn StorageProtocolHandler) erro
 		return fmt.Errorf("cannot read task id: %s. closing connection", err)
 	}
 
-	stor.logger.Debug("updating metadata and writing file")
-	var connErr error
-	updateErr := stor.metaman.Update(taskId, func(md *bakapy.Metadata) {
-		stor.logger.Debug("updating metadata", md)
-
-		if !md.EndTime.IsZero() {
-			connErr = fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
-			return
-		}
-
-		filename, err := conn.ReadFilename()
-		if err != nil {
-			connErr = fmt.Errorf("cannot read filename: %s. closing connection", err)
-			return
-		}
-
-		if filename == bakapy.JOB_FINISH {
-			stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", bakapy.JOB_FINISH)
-			return
-		}
-
-		fileSavePath := path.Join(
-			stor.RootDir,
-			md.Namespace,
-			filename,
-		)
-
-		if md.Gzip {
-			fileSavePath += ".gz"
-		}
-
-		fileMeta := bakapy.MetadataFileEntry{}
-		fileMeta.Name = filename
-		fileMeta.SourceAddr = conn.RemoteAddr().String()
-		fileMeta.StartTime = time.Now()
-
-		stor.logger.Info("saving file %s", fileSavePath)
-		err = os.MkdirAll(path.Dir(fileSavePath), 0750)
-		if err != nil {
-			connErr = fmt.Errorf("cannot create file folder: %s", err)
-			return
-		}
-
-		fd, err := os.Create(fileSavePath)
-		if err != nil {
-			connErr = fmt.Errorf("cannot open file: %s", err)
-			return
-		}
-
-		var file io.WriteCloser
-		var gzWriter io.WriteCloser
-		if md.Gzip {
-			gzWriter = gzip.NewWriter(fd)
-			file = gzWriter
-		} else {
-			file = fd
-		}
-
-		stream := bufio.NewWriter(file)
-		written, err := conn.ReadContent(stream)
-		if err != nil {
-			connErr = fmt.Errorf("cannot save file: %s. closing connection", err)
-			return
-		}
-
-		stream.Flush()
-		if md.Gzip {
-			gzWriter.Close()
-		}
-		fd.Close()
-
-		stor.logger.Debug("adding file %s to metadata", fileMeta.Name)
-		fileMeta.Size = written
-		fileMeta.EndTime = time.Now()
-
-		md.Files = append(md.Files, fileMeta)
-		stor.logger.Debug("updating metadata done: %s", md)
-	})
-	stor.logger.Debug("done")
-	if updateErr != nil {
-		stor.logger.Critical("cannot save metadata: %s", updateErr.Error())
-		return updateErr
+	md, err := stor.metaman.View(taskId)
+	if err != nil {
+		return fmt.Errorf("cannot find task id %s: %s", taskId, err)
 	}
-	return connErr
+
+	if !md.EndTime.IsZero() {
+		return fmt.Errorf("task with id '%s' already finished, closing connection", taskId)
+	}
+
+	filename, err := conn.ReadFilename()
+	if err != nil {
+		return fmt.Errorf("cannot read filename: %s. closing connection", err)
+	}
+
+	if filename == bakapy.JOB_FINISH {
+		stor.logger.Warning("got deprecated magic word '%s' as filename, ignoring", bakapy.JOB_FINISH)
+		return nil
+	}
+
+	fileSavePath := path.Join(
+		stor.RootDir,
+		md.Namespace,
+		filename,
+	)
+
+	if md.Gzip {
+		fileSavePath += ".gz"
+	}
+
+	fileMeta := bakapy.MetadataFileEntry{}
+	fileMeta.Name = filename
+	fileMeta.SourceAddr = conn.RemoteAddr().String()
+	fileMeta.StartTime = time.Now()
+
+	stor.logger.Info("saving file %s", fileSavePath)
+	err = os.MkdirAll(path.Dir(fileSavePath), 0750)
+	if err != nil {
+		return fmt.Errorf("cannot create file folder: %s", err)
+	}
+
+	fd, err := os.Create(fileSavePath)
+	if err != nil {
+		return fmt.Errorf("cannot open file: %s", err)
+	}
+
+	var file io.WriteCloser
+	var gzWriter io.WriteCloser
+	if md.Gzip {
+		gzWriter = gzip.NewWriter(fd)
+		file = gzWriter
+	} else {
+		file = fd
+	}
+	stream := bufio.NewWriter(file)
+	written, err := conn.ReadContent(stream)
+	if err != nil {
+		return fmt.Errorf("cannot save file: %s. closing connection", err)
+	}
+
+	stream.Flush()
+	if md.Gzip {
+		gzWriter.Close()
+	}
+	fd.Close()
+	fileMeta.Size = written
+	fileMeta.EndTime = time.Now()
+
+	err = stor.metaman.AddFile(taskId, fileMeta)
+	if err != nil {
+		stor.logger.Critical("cannot save metadata: %s", err.Error())
+		return err
+	}
+	return nil
 }

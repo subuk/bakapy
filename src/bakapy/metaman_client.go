@@ -1,7 +1,6 @@
-package meta
+package bakapy
 
 import (
-	"bakapy"
 	"fmt"
 	"github.com/op/go-logging"
 	"io"
@@ -9,12 +8,20 @@ import (
 	"net/rpc"
 )
 
+type RPCUpdateArg struct {
+	ConnId   *string
+	TaskId   *TaskId
+	Metadata *Metadata
+	FileMeta *MetadataFileEntry
+}
+
 type MetaManager interface {
-	Keys() chan bakapy.TaskId
-	View(id bakapy.TaskId) (bakapy.Metadata, error)
-	Add(id bakapy.TaskId, md bakapy.Metadata) error
-	Update(id bakapy.TaskId, up func(m *bakapy.Metadata)) error
-	Remove(id bakapy.TaskId) error
+	Keys() chan TaskId
+	View(id TaskId) (Metadata, error)
+	Add(id TaskId, md Metadata) error
+	Update(id TaskId, up func(m *Metadata)) error
+	AddFile(id TaskId, fm MetadataFileEntry) error
+	Remove(id TaskId) error
 }
 
 type MetaManClient struct {
@@ -43,7 +50,7 @@ auth:
 			return fmt.Errorf("cannot connect to %s: %s", mmc.serverAddr, err)
 		}
 
-		_, err = io.WriteString(conn, sha256String(mmc.secret))
+		_, err = io.WriteString(conn, SHA256String(mmc.secret))
 		if err != nil {
 			return fmt.Errorf("cannot write auth request: %s", err)
 		}
@@ -70,13 +77,13 @@ auth:
 	return err
 }
 
-func (mmc *MetaManClient) Keys() chan bakapy.TaskId {
+func (mmc *MetaManClient) Keys() chan TaskId {
 	args := false
-	ch := make(chan bakapy.TaskId)
-	var reply []bakapy.TaskId
-	err := mmc.call("MetaRPCServer.Keys", &args, &reply)
+	ch := make(chan TaskId)
+	var reply []TaskId
+	err := mmc.call("Metaman.Keys", &args, &reply)
 	if err != nil {
-		mmc.logger.Warning("error during MetaRPCServer.Keys call: %s", err)
+		mmc.logger.Warning("error during Metaman.Keys call: %s", err)
 		close(ch)
 		return ch
 	}
@@ -89,35 +96,44 @@ func (mmc *MetaManClient) Keys() chan bakapy.TaskId {
 	return ch
 }
 
-func (mmc *MetaManClient) View(id bakapy.TaskId) (bakapy.Metadata, error) {
-	var md bakapy.Metadata
-	err := mmc.call("MetaRPCServer.View", &id, &md)
+func (mmc *MetaManClient) View(id TaskId) (Metadata, error) {
+	var md Metadata
+	err := mmc.call("Metaman.View", &id, &md)
 	return md, err
 }
 
-func (mmc *MetaManClient) Add(id bakapy.TaskId, md bakapy.Metadata) error {
+func (mmc *MetaManClient) Add(id TaskId, md Metadata) error {
 	md.TaskId = id
 	noreply := false
-	return mmc.call("MetaRPCServer.Add", &md, &noreply)
+	return mmc.call("Metaman.Add", &md, &noreply)
 }
 
-func (mmc *MetaManClient) Update(id bakapy.TaskId, up func(*bakapy.Metadata)) error {
+func (mmc *MetaManClient) AddFile(id TaskId, fm MetadataFileEntry) error {
 	noreply := false
-	md := &bakapy.Metadata{}
+	args := &RPCUpdateArg{
+		TaskId:   &id,
+		FileMeta: &fm,
+	}
+	return mmc.call("Metaman.AddFile", &args, &noreply)
+}
+
+func (mmc *MetaManClient) Update(id TaskId, up func(*Metadata)) error {
+	noreply := false
+	md := &Metadata{}
 	args := &RPCUpdateArg{
 		TaskId: &id,
 		ConnId: &mmc.connId,
 	}
-	err := mmc.call("MetaRPCServer.GetForUpdate", args, md)
+	err := mmc.call("Metaman.GetForUpdate", args, md)
 	if err != nil {
 		return fmt.Errorf("cannot get metadata for update: %s", err)
 	}
 	up(md)
 	args.Metadata = md
-	return mmc.call("MetaRPCServer.Save", args, &noreply)
+	return mmc.call("Metaman.Save", args, &noreply)
 }
 
-func (mmc *MetaManClient) Remove(id bakapy.TaskId) error {
+func (mmc *MetaManClient) Remove(id TaskId) error {
 	noreply := false
-	return mmc.call("MetaRPCServer.Remove", &id, &noreply)
+	return mmc.call("Metaman.Remove", &id, &noreply)
 }

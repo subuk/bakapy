@@ -2,7 +2,6 @@ package main
 
 import (
 	"bakapy"
-	"bakapy/meta"
 	"flag"
 	"fmt"
 	"github.com/op/go-logging"
@@ -32,10 +31,8 @@ func main() {
 	logger.Debug(string(config.PrettyFmt()))
 
 	scriptPool := bakapy.NewDirectoryScriptPool(config)
-	metaServer := meta.NewJSONDirServer(config.MetadataListen, config.Secret, config.MetadataDir)
-	go metaServer.Serve()
 
-	metaman := meta.NewMetaManClient(config.MetadataListen, config.Secret)
+	metaman := bakapy.NewMetaManClient(config.MetadataAddr, config.Secret)
 
 	notificators := bakapy.NewNotificatorPool()
 	for _, ncConfig := range config.Notificators {
