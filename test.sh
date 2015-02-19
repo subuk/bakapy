@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 export GOPATH="$GOPATH:`pwd`/vendor:`pwd`"
 
 for pkg in bakapy bakapy-storage; do
