@@ -18,13 +18,6 @@ type JSONDirServer struct {
 	listen        string
 }
 
-type RPCUpdateArg struct {
-	ConnId   *string
-	TaskId   *bakapy.TaskId
-	Metadata *bakapy.Metadata
-	FileMeta *bakapy.MetadataFileEntry
-}
-
 func NewJSONDirServer(listen, secret, root string) *JSONDirServer {
 	s := &JSONDirServer{
 		logger:        logging.MustGetLogger("bakapy.metaman_rpc_server"),
@@ -60,7 +53,7 @@ func (mms *JSONDirServer) Add(md *bakapy.Metadata, noreply *bool) error {
 	return mms.metaman.Add(md.TaskId, *md)
 }
 
-func (mms *JSONDirServer) GetForUpdate(args *RPCUpdateArg, reply *bakapy.Metadata) error {
+func (mms *JSONDirServer) GetForUpdate(args *bakapy.RPCUpdateArg, reply *bakapy.Metadata) error {
 	mms.logger.Debug("GetForUpdate: called")
 	defer mms.logger.Debug("GetForUpdate: return")
 
@@ -97,7 +90,7 @@ func (mms *JSONDirServer) GetForUpdate(args *RPCUpdateArg, reply *bakapy.Metadat
 	return nil
 }
 
-func (mms *JSONDirServer) Save(args *RPCUpdateArg, noreply *bool) error {
+func (mms *JSONDirServer) Save(args *bakapy.RPCUpdateArg, noreply *bool) error {
 	mms.logger.Debug("Save: called")
 	defer mms.logger.Debug("Save: return")
 	if taskId, exist := mms.pendingUpdate[*args.ConnId]; !exist {
@@ -108,7 +101,7 @@ func (mms *JSONDirServer) Save(args *RPCUpdateArg, noreply *bool) error {
 	return mms.metaman.Save(args.Metadata.TaskId, args.Metadata)
 }
 
-func (mms *JSONDirServer) AddFile(args *RPCUpdateArg, noreply *bool) error {
+func (mms *JSONDirServer) AddFile(args *bakapy.RPCUpdateArg, noreply *bool) error {
 	if args.FileMeta == nil {
 		return fmt.Errorf("args.FileMeta required")
 	}
