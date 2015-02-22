@@ -9,53 +9,23 @@ bakapy-metaman &>metaman.log &
 metamanPid="$!"
 
 echo -n "Waiting metaman to start ..."
-i=0
-while true; do
-    let i+=1
-    netstat -tlnp 2>/dev/null |awk '{print $4}' |grep -q :19875$ && break
-    echo -n "."
-    if [ "$i" -gt 50 ];then
-        echo "Error: timeout"
-        exit 1
-    fi
-    sleep 0.1
-done
+wait_port_listened 19875
 echo " OK"
 
 bakapy-storage &>storage.log &
 storagePid="$!"
 
 echo -n "Waiting storage to start ..."
-i=0
-while true; do
-    let i+=1
-    netstat -tlnp 2>/dev/null |awk '{print $4}' |grep -q :19876$ && break
-    echo -n "."
-    if [ "$i" -gt 50 ];then
-        echo "Error: timeout"
-        exit 1
-    fi
-    sleep 0.1
-done
+wait_port_listened 19876
 echo " OK"
 
 on_exit(){
-    kill $storagePid
     echo -n "Waiting storage to exit ... "
-    while true; do
-        test ! -d /proc/${storagePid} && break
-        echo -n ". "
-        sleep 0.1
-    done
+    kill_and_wait "$storagePid"
     echo "OK"
 
-    kill $metamanPid
     echo -n "Waiting metaman to exit ... "
-    while true; do
-        test ! -d /proc/${metamanPid} && break
-        echo -n ". "
-        sleep 0.1
-    done
+    kill_and_wait "$metamanPid"
     echo "OK"
 }
 
