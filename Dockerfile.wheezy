@@ -26,4 +26,4 @@ RUN cd /home/builder/bakapy-source && dpkg-buildpackage -us -uc
 
 USER root
 RUN mkdir -p /packages
-RUN mv /home/builder/*.deb /packages
+RUN mv /home/builder/*.deb /home/builder/*.dsc /home/builder/*.changes /home/builder/*.tar.gz /packages
