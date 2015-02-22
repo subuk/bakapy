@@ -67,6 +67,13 @@ func (mm *TestMetaMan) Remove(id bakapy.TaskId) error {
 	return nil
 }
 
+func (mm *TestMetaMan) AddFile(id bakapy.TaskId, fm bakapy.MetadataFileEntry) error {
+	md := mm.stor[id]
+	md.Files = append(md.Files, fm)
+	mm.stor[id] = md
+	return nil
+}
+
 type NullStorageProtocol struct {
 	readContentCalled bool
 	filename          string
@@ -122,7 +129,7 @@ func TestStorage_HandleConnection_UnknownTaskId(t *testing.T) {
 	if err == nil {
 		t.Fatal("error expected")
 	}
-	expectedError := "does not exist"
+	expectedError := "cannot find task id a70cb394-c22d-4fe7-a5cc-bc0a5e19a24c: does not exist"
 	if err.Error() != expectedError {
 		t.Fatal("bad error:", err)
 	}

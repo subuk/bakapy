@@ -12,5 +12,5 @@
 /debian/files
 /native-packages/
 /front/metadata/
-/coverage.out
+/coverage*.out
 /acceptance/test_run_job_smoke/*.log

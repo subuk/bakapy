@@ -100,6 +100,13 @@ func (mm *TestMetaMan) Remove(id TaskId) error {
 	return nil
 }
 
+func (mm *TestMetaMan) AddFile(id TaskId, fm MetadataFileEntry) error {
+	md := mm.stor[id]
+	md.Files = append(md.Files, fm)
+	mm.stor[id] = md
+	return nil
+}
+
 func TestJob_Run_ExecutionOkMetadataSetted(t *testing.T) {
 	now := time.Now()
 	executor := &TestOkExecutor{}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bakapy"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -10,18 +11,18 @@ import (
 
 var ADDOK_EXPECTED_CONTENT = []byte(`{"JobName":"test","Gzip":false,"Namespace":"ns","TaskId":"123","Command":"cmd","Success":false,"Message":"","TotalSize":0,"StartTime":"2015-02-12T22:07:54.271257193Z","EndTime":"0001-01-01T00:00:00Z","ExpireTime":"2015-02-12T22:07:54.271258193Z","Files":null,"Pid":0,"RetCode":0,"Script":null,"Output":null,"Errput":null,"Config":{"Sudo":false,"Disabled":false,"Gzip":false,"MaxAgeDays":0,"MaxAge":0,"Namespace":"","Host":"","Port":0,"Command":"","Args":null,"RunAt":{"Second":"","Minute":"","Hour":"","Day":"","Month":"","Weekday":""}}}`)
 
-func NewTestJSONDir() *MetaMan {
+func NewTestJSONDir() *JSONDir {
 	tmpdir, err := ioutil.TempDir("", "metamantest_")
 	if err != nil {
 		panic(fmt.Errorf("cannot create temporary dir for test metaman:", err))
 	}
-	return NewMetaMan(&Config{MetadataDir: tmpdir})
+	return NewJSONDir(tmpdir)
 }
 
 func TestJSONDir_AddOk(t *testing.T) {
 	mm := NewTestJSONDir()
 	defer os.RemoveAll(mm.RootDir)
-	md := Metadata{
+	md := bakapy.Metadata{
 		JobName:   "test",
 		Namespace: "ns",
 		Command:   "cmd",
@@ -41,7 +42,7 @@ func TestJSONDir_AddOk(t *testing.T) {
 func TestJSONDir_AddAlreadyExist(t *testing.T) {
 	mm := NewTestJSONDir()
 	defer os.RemoveAll(mm.RootDir)
-	md := Metadata{
+	md := bakapy.Metadata{
 		JobName:   "test",
 		Namespace: "ns",
 		Command:   "cmd",
@@ -98,7 +99,7 @@ func TestJSONDir_KeysOk(t *testing.T) {
 	os.Create(rootDir + "/wow2")
 	os.Create(rootDir + "/how")
 
-	var result []TaskId
+	var result []bakapy.TaskId
 	for k := range mm.Keys() {
 		result = append(result, k)
 	}

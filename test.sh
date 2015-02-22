@@ -4,7 +4,7 @@ set -e
 
 export GOPATH="$GOPATH:`pwd`/vendor:`pwd`"
 
-for pkg in bakapy bakapy-storage; do
+for pkg in bakapy bakapy-storage bakapy-metaman; do
     go test -covermode=count -coverprofile="coverage-${pkg}.out" $@ "${pkg}"
 done
 
