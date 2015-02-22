@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-type Cleaner func(metaman bakapy.MetaManager, storage Storage) error
-
 func CleanupExpiredJobs(metaman bakapy.MetaManager, storage Storage) error {
 	logger := logging.MustGetLogger("bakapy.cleaner.CleanupExpiredFiles")
 	logger.Debug("cleaning up storage")

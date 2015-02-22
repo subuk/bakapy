@@ -15,15 +15,6 @@ type RPCUpdateArg struct {
 	FileMeta *MetadataFileEntry
 }
 
-type MetaManager interface {
-	Keys() chan TaskId
-	View(id TaskId) (Metadata, error)
-	Add(id TaskId, md Metadata) error
-	Update(id TaskId, up func(m *Metadata)) error
-	AddFile(id TaskId, fm MetadataFileEntry) error
-	Remove(id TaskId) error
-}
-
 type MetaManClient struct {
 	client     *rpc.Client
 	serverAddr string

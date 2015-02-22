@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-type Notificator interface {
-	JobFinished(md Metadata) error
-	MetadataAccessFailed(err error) error
-	Name() string
-}
-
 type ScriptedNotificator struct {
 	scripts NotifyScriptPool
 	name    string
