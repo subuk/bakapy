@@ -5,7 +5,7 @@ if [ "$BAKAPY_METADATA_SUCCESS" == "1" ];then
 fi
 
 if [ "$BAKAPY_EVENT" == "job_finished" ];then
-sendmail root <<EOF
+sendmail "$BAKAPY_PARAM_MAILTO" <<EOF
 To: root
 Subject: [bakapy] Job $BAKAPY_METADATA_JOBNAME failed
 Content-Type: text/plain; charset=utf8
@@ -25,7 +25,7 @@ EOF
 fi
 
 if [ "$BAKAPY_EVENT" == "metadata_access_error" ];then
-sendmail root <<EOF
+sendmail "$BAKAPY_PARAM_MAILTO" <<EOF
 To: root
 Subject: [bakapy] Job $BAKAPY_METADATA_JOBNAME failed
 Content-Type: text/plain; charset=utf8

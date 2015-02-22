@@ -8,8 +8,8 @@ import (
 	"reflect"
 )
 
-var USAGE = "Usage: bakapy-show-meta files..."
-var CONFIG_PATH = flag.String("config", "scheduler.conf", "Bakapy configuration file")
+var USAGE = "Usage: bakapy-show-meta <taskId>"
+var CONFIG_PATH = flag.String("config", "scheduler.conf", "Scheduler configuration file")
 var ONLY_KEY = flag.String("key", "", "Show only specified key from metadata")
 
 func printMetadata(metadata bakapy.Metadata) {
