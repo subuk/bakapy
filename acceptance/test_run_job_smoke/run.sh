@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. ../tools.sh
 export PATH="$(dirname $(dirname `pwd`))/bin:$PATH"
 trap 'trap - SIGTERM && kill -INT 0' SIGINT SIGTERM EXIT
 
@@ -20,13 +21,13 @@ wait_port_listened 19876
 echo " OK"
 
 on_exit(){
-    echo -n "Waiting storage to exit ... "
+    echo -n "Waiting storage to exit ..."
     kill_and_wait "$storagePid"
-    echo "OK"
+    echo " OK"
 
-    echo -n "Waiting metaman to exit ... "
+    echo -n "Waiting metaman to exit ..."
     kill_and_wait "$metamanPid"
-    echo "OK"
+    echo " OK"
 }
 
 trap on_exit EXIT

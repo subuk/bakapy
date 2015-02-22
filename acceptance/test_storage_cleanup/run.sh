@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 . ../tools.sh
 export PATH="$(dirname $(dirname `pwd`))/bin:$PATH"
 trap 'trap - SIGTERM && kill -INT 0' SIGINT SIGTERM EXIT
