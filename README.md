@@ -2,29 +2,26 @@
 
 [![Build Status](https://travis-ci.org/subuk/bakapy.svg?branch=master)](https://travis-ci.org/subuk/bakapy)
 
-Backup framework.
+Backup framework
 
-How to use:
-- Write shell script for backup data (command)
-- Create job configuration with command, schedule and expire date for files created by this command
-- View reports about backup jobs (bakapy-show-meta storage_dir/*)
+## Features
+
+- Simple - you still write a shell scripts
+- Only you decide how to store backup data
+- Scripted notifications
+- Statistic about each job
+- Human readable metadata format
+- Backup encryption on client
+- Web interface
+- Easy to install and configure
 
 ## Installation
 
-DEB-based distros:
-
-    wget https://github.com/subuk/bakapy/releases/download/v${version}/bakapy_${version}_amd64.${debianRelease}.deb
-    dpkg -i bakapy_${version}_amd64.${debianRelease}.deb
-
-RPM-based:
-
-    rpm -ivh https://github.com/subuk/bakapy/releases/download/v${version}/bakapy-${version}-1.${dist}.src.rpm
+DEB/RPM packages: https://github.com/subuk/bakapy/releases
 
 ## Configuration
 
-Configuration examples:
-- bakapy.conf.ex.yaml
-- jobs.conf.ex.yaml
+See comments in /etc/bakapy/... files.
 
 ## Writing custom commands
 
@@ -37,7 +34,7 @@ The simplest example:
     done
 
 
-## Scheduler expression Format
+## Scheduler expression format
 
 http://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format
 
