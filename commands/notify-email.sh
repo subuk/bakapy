@@ -27,19 +27,10 @@ fi
 if [ "$BAKAPY_EVENT" == "metadata_access_error" ];then
 sendmail "$BAKAPY_PARAM_MAILTO" <<EOF
 To: root
-Subject: [bakapy] Job $BAKAPY_METADATA_JOBNAME failed
+Subject: [bakapy] Metadata server access error
 Content-Type: text/plain; charset=utf8
 
-$BAKAPY_METADATA_MESSAGE
+$BAKAPY_ERROR
 
-Output:
------------------------------
-$BAKAPY_METADATA_OUTPUT
------------------------------
-
-Errput:
------------------------------
-$BAKAPY_METADATA_ERRPUT
------------------------------
 EOF
 fi
