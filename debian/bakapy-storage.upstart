@@ -1,0 +1,16 @@
+description "Bakapy storage"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+script
+    DAEMON_CONFIG=/etc/bakapy/storage.conf
+    DAEMON_LOGLEVEL=info
+    DAEMON_OPTS=
+
+    if [ -f /etc/default/bakapy-storage ]; then
+        . /etc/default/bakapy-storage
+    fi
+
+    exec /usr/bin/bakapy-storage --config=${DAEMON_CONFIG} --loglevel=${DAEMON_LOGLEVEL} $DAEMON_OPTS
+end script

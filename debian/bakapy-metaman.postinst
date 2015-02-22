@@ -1,4 +1,5 @@
 #!/bin/sh
+#DEBHELPER#
 
 set -e
 
@@ -12,10 +13,9 @@ case "$1" in
                 --create-home \
                 --home-dir $HOMEDIR \
                 --shell /bin/false
+            install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/data
+            install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/meta
         fi
-
-        install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/data
-        install --directory --owner bakapy --group bakapy --mode 0750 /var/lib/bakapy/meta
 
         ;;
 

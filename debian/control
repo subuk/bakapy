@@ -2,15 +2,25 @@ Source: bakapy
 Maintainer: Matvey Kruglov <kubuzzzz@gmail.com>
 Section: Backup
 Priority: optional
-Build-Depends: cdbs
-Standards-Version: 3.9.1
+Build-Depends: cdbs, debhelper
+Standards-Version: 3.9.5
 
-Package: bakapy
+Package: bakapy-scheduler
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Bakapy backup framework
+Description: Bakapy scheduler service
+
+Package: bakapy-metaman
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Bakapy metadata service
+
+Package: bakapy-storage
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Bakapy storage service
 
 Package: bakapy-front
 Architecture: all
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Bakapy framework web interface
+Description: Bakapy web interface for metadata service
