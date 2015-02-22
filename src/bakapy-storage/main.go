@@ -15,6 +15,7 @@ var logger = logging.MustGetLogger("bakapy.storage")
 var CONFIG_PATH = flag.String("config", "storage.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var TEST_CONFIG_ONLY = flag.Bool("test", false, "Check config and exit")
+var CLEAN_ONLY = flag.Bool("clean-only", false, "Clean once and exit")
 
 func main() {
 	flag.Parse()
@@ -35,6 +36,15 @@ func main() {
 
 	if *TEST_CONFIG_ONLY {
 		return
+	}
+
+	if *CLEAN_ONLY {
+		err := CleanupExpiredJobs(metaman, storage)
+		if err != nil {
+			logger.Warning("cleanup failed: %s", err.Error())
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	storage.Start()

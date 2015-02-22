@@ -8,3 +8,4 @@ rm -f NOTIFICATION
 rm -f run-job.log
 rm -f scheduler.log
 rm -f storage.log
+rm -f metaman.log

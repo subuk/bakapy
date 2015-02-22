@@ -3,6 +3,7 @@ package main
 import (
 	"bakapy"
 	"github.com/op/go-logging"
+	"os"
 	"time"
 )
 
@@ -29,6 +30,10 @@ func CleanupExpiredJobs(metaman bakapy.MetaManager, storage Storage) error {
 			logger.Info("removing file {%s}%s", md.Namespace, fileMeta.Name)
 			err = storage.Remove(md.Namespace, fileMeta.Name)
 			if err != nil {
+				if os.IsNotExist(err) {
+					logger.Warning("file {%s}%s does not exist, skipping", md.Namespace, fileMeta.Name)
+					continue
+				}
 				removeErrs = true
 				logger.Warning("cannot remove file {%s}%s: %s", md.Namespace, fileMeta.Name, err.Error())
 			}
