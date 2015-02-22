@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 export PATH="$(dirname $(dirname `pwd`))/bin:$PATH"
 trap 'trap - SIGTERM && kill -INT 0' SIGINT SIGTERM EXIT
 
@@ -64,7 +62,7 @@ on_exit(){
 trap on_exit EXIT
 
 echo -n 'Waiting bakapy-run-job to finish ... '
-bakapy-run-job --taskid="$taskId" --config=bakapy.conf --job=smoke &>run-job.log
+bakapy-run-job --taskid="$taskId" --job=smoke &>run-job.log
 runJobExitCode="$?"
 echo "OK: retcode $runJobExitCode"
 
@@ -82,9 +80,9 @@ fi
 echo OK
 
 echo -n "Checking job finished successfully ... "
-mdSuccess=$(bakapy-show-meta --config=bakapy.conf --key=Success "$taskId")
+mdSuccess=$(bakapy-show-meta --key=Success "$taskId")
 if [ "$mdSuccess" != "true" ];then
-    echo "Failed: $(bakapy-show-meta --config=bakapy.conf --key=Message "$taskId")"
+    echo "Failed: $(bakapy-show-meta --key=Message "$taskId")"
     exit 1
 fi
 echo OK

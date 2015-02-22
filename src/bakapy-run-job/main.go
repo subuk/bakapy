@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var CONFIG_PATH = flag.String("config", "bakapy.conf", "Path to config file")
+var CONFIG_PATH = flag.String("config", "scheduler.conf", "Path to config file")
 var LOG_LEVEL = flag.String("loglevel", "debug", "Log level")
 var JOB_NAME = flag.String("job", "REQUIRED", "Job name")
 var FORCE_TASK_ID = flag.String("taskid", "", "Use this task id for job")

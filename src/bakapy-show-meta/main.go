@@ -9,7 +9,7 @@ import (
 )
 
 var USAGE = "Usage: bakapy-show-meta files..."
-var CONFIG_PATH = flag.String("config", "metaman.conf", "Bakapy configuration file")
+var CONFIG_PATH = flag.String("config", "scheduler.conf", "Bakapy configuration file")
 var ONLY_KEY = flag.String("key", "", "Show only specified key from metadata")
 
 func printMetadata(metadata bakapy.Metadata) {
