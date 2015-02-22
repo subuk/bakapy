@@ -15,7 +15,6 @@ import (
 )
 
 type Storage interface {
-	Serve(ln net.Listener)
 	Remove(namespace, filename string) error
 }
 
