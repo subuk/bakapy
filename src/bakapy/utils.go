@@ -12,7 +12,7 @@ import (
 func SetupLogging(logLevel string) error {
 	format := "%{level:.8s} %{module} %{message}"
 	stderrBackend := logging.NewLogBackend(os.Stderr, "", 0)
-	syslogBackend, err := logging.NewSyslogBackendPriority("", syslog.LOG_CRIT|syslog.LOG_DAEMON)
+	syslogBackend, err := logging.NewSyslogBackendPriority("", syslog.LOG_INFO|syslog.LOG_DAEMON)
 	if err != nil {
 		return err
 	}
