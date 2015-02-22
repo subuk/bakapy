@@ -51,6 +51,7 @@ func (s *ScriptedNotificator) JobFinished(md Metadata) error {
 	for key, value := range s.params {
 		env = append(env, "BAKAPY_PARAM_"+strings.ToUpper(key)+"="+value)
 	}
+	env = append(env, "BAKAPY_EVENT=job_finished")
 	cmd.Env = env
 	return cmd.Run()
 }
@@ -66,6 +67,7 @@ func (s *ScriptedNotificator) MetadataAccessFailed(err error) error {
 	cmd.Stderr = s.errput
 	env := os.Environ()
 	env = append(env, "BAKAPY_ERROR="+err.Error())
+	env = append(env, "BAKAPY_EVENT=metadata_access_error")
 	cmd.Env = env
 	return cmd.Run()
 }

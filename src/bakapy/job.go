@@ -90,14 +90,16 @@ func (job *Job) getScript() ([]byte, error) {
 func (job *Job) Run() {
 	job.logger.Info("starting up")
 	now := time.Now().UTC()
-	err := job.metaman.Add(job.TaskId, Metadata{
+	md := Metadata{
+		TaskId:     job.TaskId,
 		JobName:    job.Name,
 		Gzip:       job.cfg.Gzip,
 		Namespace:  job.cfg.Namespace,
 		Command:    job.cfg.Command,
 		StartTime:  now,
 		ExpireTime: now.Add(job.cfg.MaxAge),
-	})
+	}
+	err := job.metaman.Add(job.TaskId, md)
 	if err != nil {
 		err = fmt.Errorf("cannot add metadata: %s", err)
 		job.logger.Critical(err.Error())
@@ -116,6 +118,9 @@ func (job *Job) Run() {
 			updErr = fmt.Errorf("cannot set metadata error: %s", updErr.Error())
 			job.logger.Critical(updErr.Error())
 			job.notify.MetadataAccessFailed(updErr)
+		} else {
+			md.Message = err.Error()
+			job.notify.JobFinished(md)
 		}
 		return
 	}
@@ -155,7 +160,7 @@ func (job *Job) Run() {
 		return
 	}
 
-	md, err := job.metaman.View(job.TaskId)
+	md, err = job.metaman.View(job.TaskId)
 	if err != nil {
 		err = fmt.Errorf("cannot get metadata for notification: %s", err)
 		job.logger.Warning(err.Error())
