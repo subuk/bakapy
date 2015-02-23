@@ -136,21 +136,21 @@ func (job *Job) Run() {
 
 	job.logger.Debug("Command output: %s", output.String())
 	job.logger.Debug("Command errput: %s", errput.String())
-	err = job.metaman.Update(job.TaskId, func(mtd *Metadata) {
-		job.logger.Debug("Updating task metadata %s", mtd)
-		mtd.EndTime = time.Now().UTC()
-		mtd.Output = output.Bytes()
-		mtd.Errput = errput.Bytes()
-		mtd.CalculateTotalSize()
+	err = job.metaman.Update(job.TaskId, func(md *Metadata) {
+		job.logger.Debug("Updating task metadata %s", md)
+		md.EndTime = time.Now().UTC()
+		md.Output = output.Bytes()
+		md.Errput = errput.Bytes()
+		md.CalculateTotalSize()
 
 		if jobErr != nil {
-			mtd.Success = false
-			mtd.Message = jobErr.Error()
+			md.Success = false
+			md.Message = jobErr.Error()
 		} else {
-			mtd.Success = true
-			mtd.Message = "OK"
+			md.Success = true
+			md.Message = "OK"
 		}
-		job.logger.Debug("Updating task metadata done %s", mtd)
+		job.logger.Debug("Updating task metadata done %s", md)
 	})
 
 	if err != nil {
