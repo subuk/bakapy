@@ -1,0 +1,16 @@
+description "Bakapy metaman"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+script
+    DAEMON_CONFIG=/etc/bakapy/metaman.conf
+    DAEMON_LOGLEVEL=info
+    DAEMON_OPTS=
+
+    if [ -f /etc/default/bakapy-metaman ]; then
+        . /etc/default/bakapy-metaman
+    fi
+
+    exec /usr/bin/bakapy-metaman --config=${DAEMON_CONFIG} --loglevel=${DAEMON_LOGLEVEL} $DAEMON_OPTS
+end script

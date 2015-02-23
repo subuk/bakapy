@@ -1,14 +1,15 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"github.com/op/go-logging"
+	"os"
 	"time"
 )
 
-type Cleaner func(metaman MetaManager, storage Storage) error
-
-func CleanupExpiredJobs(metaman MetaManager, storage Storage) error {
+func CleanupExpiredJobs(metaman bakapy.MetaManager, storage Storage) error {
 	logger := logging.MustGetLogger("bakapy.cleaner.CleanupExpiredFiles")
+	logger.Debug("cleaning up storage")
 	for taskId := range metaman.Keys() {
 		md, err := metaman.View(taskId)
 		if err != nil {
@@ -27,6 +28,10 @@ func CleanupExpiredJobs(metaman MetaManager, storage Storage) error {
 			logger.Info("removing file {%s}%s", md.Namespace, fileMeta.Name)
 			err = storage.Remove(md.Namespace, fileMeta.Name)
 			if err != nil {
+				if os.IsNotExist(err) {
+					logger.Warning("file {%s}%s does not exist, skipping", md.Namespace, fileMeta.Name)
+					continue
+				}
 				removeErrs = true
 				logger.Warning("cannot remove file {%s}%s: %s", md.Namespace, fileMeta.Name, err.Error())
 			}

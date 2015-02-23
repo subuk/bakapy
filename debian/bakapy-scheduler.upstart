@@ -1,0 +1,16 @@
+description "Bakapy scheduler"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+script
+    DAEMON_CONFIG=/etc/bakapy/scheduler.conf
+    DAEMON_LOGLEVEL=info
+    DAEMON_OPTS=
+
+    if [ -f /etc/default/bakapy-scheduler ]; then
+        . /etc/default/bakapy-scheduler
+    fi
+
+    exec /usr/bin/bakapy-scheduler --config=${DAEMON_CONFIG} --loglevel=${DAEMON_LOGLEVEL} $DAEMON_OPTS
+end script

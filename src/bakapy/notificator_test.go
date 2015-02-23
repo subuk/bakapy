@@ -54,6 +54,7 @@ func TestScriptedNotificatorJobFinished_ScriptOk(t *testing.T) {
 		t.Fatal("error", err)
 	}
 	expected := "\n"
+	expected += "BAKAPY_EVENT=job_finished\n"
 	expected += "BAKAPY_METADATA_ERRPUT=some errput\n"
 	expected += "BAKAPY_METADATA_JOBNAME=testjob\n"
 	expected += "BAKAPY_METADATA_MESSAGE=test message\n"

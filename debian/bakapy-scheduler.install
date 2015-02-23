@@ -1,0 +1,5 @@
+bin/bakapy-run-job usr/bin
+bin/bakapy-show-meta usr/bin
+bin/bakapy-scheduler usr/bin
+commands etc/bakapy/
+scheduler.conf etc/bakapy

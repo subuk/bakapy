@@ -12,6 +12,24 @@ Requires(pre): /usr/sbin/useradd /usr/sbin/groupadd /usr/bin/getent
 %description
 Bakapy backup framework
 
+%package scheduler
+Summary: Bakapy scheduler
+
+%description scheduler
+Bakapy scheduler service
+
+%package metaman
+Summary: Bakapy metaman
+
+%description metaman
+Bakapy metadata service
+
+%package storage
+Summary: Bakapy storage
+
+%description storage
+Bakapy file storage service
+
 %package front
 Summary: Bakapy web interface
 
@@ -25,22 +43,27 @@ Bakapy web interface files
 ./build.sh
 
 %install
-install -m 755 -d %{buildroot}/usr/bin
-install -m 755 -d %{buildroot}/etc
-install -m 755 -d %{buildroot}/etc/init
-install -m 755 -d %{buildroot}/etc/bakapy
-install -m 755 -d %{buildroot}/etc/bakapy/jobs
-install -m 755 -d %{buildroot}/usr/share/bakapy
-install -m 750 -d %{buildroot}/var/lib/bakapy
-install -m 750 -d %{buildroot}/var/lib/bakapy/data
-install -m 750 -d %{buildroot}/var/lib/bakapy/meta
+install -D bin/bakapy-scheduler %{buildroot}/usr/bin/bakapy-scheduler
+install -D bin/bakapy-run-job %{buildroot}/usr/bin/bakapy-run-job
+install -D bin/bakapy-show-meta %{buildroot}/usr/bin/bakapy-show-meta
+install -D bin/bakapy-metaman %{buildroot}/usr/bin/bakapy-metaman
+install -D bin/bakapy-storage %{buildroot}/usr/bin/bakapy-storage
 
-cp -r bin/ %{buildroot}/usr/
-cp -r commands/ %{buildroot}/etc/bakapy/
-cp -f debian/bakapy.upstart %{buildroot}/etc/init/bakapy.conf
-cp -f bakapy.conf %{buildroot}/etc/bakapy/bakapy.conf
-cp -r front/ %{buildroot}/usr/share/bakapy/
-ln -s /usr/share/bakapy/front/scripts/config.js %{buildroot}/etc/bakapy/front-config.js
+install -d commands/ %{buildroot}/etc/bakapy/commands/
+
+install -D debian/bakapy-scheduler.upstart %{buildroot}/etc/init/bakapy-scheduler.conf
+install -D debian/bakapy-metaman.upstart %{buildroot}/etc/init/bakapy-metaman.conf
+install -D debian/bakapy-storage.upstart %{buildroot}/etc/init/bakapy-storage.conf
+
+install -D scheduler.conf %{buildroot}/etc/bakapy/scheduler.conf
+install -D metaman.conf %{buildroot}/etc/bakapy/metaman.conf
+install -D storage.conf %{buildroot}/etc/bakapy/storage.conf
+
+install -d front/ %{buildroot}/usr/share/bakapy/front/
+ln -sf /usr/share/bakapy/front/scripts/config.js %{buildroot}/etc/bakapy/front-config.js
+
+install -d %{buildroot}/var/lib/bakapy/meta
+install -d %{buildroot}/var/lib/bakapy/data
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -52,27 +75,41 @@ rm -rf $RPM_BUILD_ROOT
 %postun
 test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
-%files
+%files scheduler
 %attr(755,root,root) /usr/bin/bakapy-scheduler
 %attr(755,root,root) /usr/bin/bakapy-run-job
 %attr(755,root,root) /usr/bin/bakapy-show-meta
-%attr(644,root,root) /etc/init/bakapy.conf
-%config(noreplace) /etc/bakapy/jobs
+%attr(644,root,root) /etc/init/bakapy-scheduler.conf
+#%config(noreplace) /etc/bakapy/jobs
 %config(noreplace) /etc/bakapy/commands
-%config(noreplace) /etc/bakapy/bakapy.conf
-%attr(750,bakapy,bakapy) /var/lib/bakapy/data
+%config(noreplace) /etc/bakapy/scheduler.conf
+%doc LICENSE
+
+%files metaman
+%attr(755,root,root) /usr/bin/bakapy-metaman
+%attr(644,root,root) /etc/init/bakapy-metaman.conf
+%config(noreplace) /etc/bakapy/metaman.conf
 %attr(750,bakapy,bakapy) /var/lib/bakapy/meta
 %doc LICENSE
-%doc bakapy.conf.ex.yaml
-%doc jobs.conf.ex.yaml
+
+%files storage
+%attr(755,root,root) /usr/bin/bakapy-storage
+%attr(644,root,root) /etc/init/bakapy-storage.conf
+%config(noreplace) /etc/bakapy/storage.conf
+%attr(750,bakapy,bakapy) /var/lib/bakapy/data
+%doc LICENSE
 
 %files front
 /usr/share/bakapy/front
 %config(noreplace) /etc/bakapy/front-config.js
 %doc front.nginx-vhost.conf.ex
+%doc LICENSE
 
 
 %changelog
+* Sun Feb 22 2015 15:12:09 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.9.0-1
+- TODO
+
 * Sun Jan 04 2015 15:12:09 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.8.1-1
 - Web interface performance improvements
 - Fix job scheduling

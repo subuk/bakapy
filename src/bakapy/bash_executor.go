@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-type Executer interface {
-	Execute(script []byte, output io.Writer, errput io.Writer) error
-}
-
 type BashExecutor struct {
 	Args   map[string]string
 	Host   string

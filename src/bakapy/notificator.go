@@ -8,11 +8,6 @@ import (
 	"strings"
 )
 
-type Notificator interface {
-	JobFinished(md Metadata) error
-	Name() string
-}
-
 type ScriptedNotificator struct {
 	scripts NotifyScriptPool
 	name    string
@@ -56,10 +51,68 @@ func (s *ScriptedNotificator) JobFinished(md Metadata) error {
 	for key, value := range s.params {
 		env = append(env, "BAKAPY_PARAM_"+strings.ToUpper(key)+"="+value)
 	}
+	env = append(env, "BAKAPY_EVENT=job_finished")
+	cmd.Env = env
+	return cmd.Run()
+}
+
+func (s *ScriptedNotificator) MetadataAccessFailed(err error) error {
+	scriptPath, err := s.scripts.NotifyScriptPath(s.name)
+	if err != nil {
+		return fmt.Errorf("cannot get script %s: %s", s.name, err)
+	}
+	defer os.Remove(scriptPath)
+	cmd := exec.Command(scriptPath)
+	cmd.Stdout = s.output
+	cmd.Stderr = s.errput
+	env := os.Environ()
+	env = append(env, "BAKAPY_ERROR="+err.Error())
+	env = append(env, "BAKAPY_EVENT=metadata_access_error")
 	cmd.Env = env
 	return cmd.Run()
 }
 
 func (s *ScriptedNotificator) Name() string {
 	return s.name
+}
+
+type NotificatorPool struct {
+	notificators []Notificator
+}
+
+func NewNotificatorPool() *NotificatorPool {
+	return &NotificatorPool{}
+}
+
+func (np *NotificatorPool) Add(n Notificator) {
+	np.notificators = append(np.notificators, n)
+}
+
+func (np *NotificatorPool) JobFinished(md Metadata) error {
+	for _, n := range np.notificators {
+		err := n.JobFinished(md)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (np *NotificatorPool) MetadataAccessFailed(err error) error {
+	for _, n := range np.notificators {
+		err := n.MetadataAccessFailed(err)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (np *NotificatorPool) Name() string {
+	name := "NotificatorPool{"
+	for _, n := range np.notificators {
+		name += n.Name() + ","
+	}
+	name = name[:len(name)-1]
+	return name + "}"
 }

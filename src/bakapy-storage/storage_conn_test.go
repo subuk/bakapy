@@ -1,6 +1,7 @@
-package bakapy
+package main
 
 import (
+	"bakapy"
 	"bytes"
 	"code.google.com/p/go-uuid/uuid"
 	"errors"
@@ -48,7 +49,7 @@ func (r *DummyReader) RemoteAddr() net.Addr {
 func TestStorageConn_ReadTaskId_BadState(t *testing.T) {
 	reader := &DummyReader{}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_END
+	conn.State = bakapy.STATE_END
 	_, err := conn.ReadTaskId()
 	if err == nil {
 		t.Fatal("error not returned")
@@ -75,7 +76,7 @@ func TestStorageConn_ReadTaskId_ErrorOnRead(t *testing.T) {
 }
 
 func TestStorageConn_ReadTaskId_Ok(t *testing.T) {
-	expectedTaskId := TaskId(uuid.NewUUID().String())
+	expectedTaskId := bakapy.TaskId(uuid.NewUUID().String())
 	reader := &DummyReader{
 		data: []byte(expectedTaskId),
 	}
@@ -87,15 +88,15 @@ func TestStorageConn_ReadTaskId_Ok(t *testing.T) {
 	if taskId != expectedTaskId {
 		t.Fatal("bad taskid:", taskId)
 	}
-	if conn.State != STATE_WAIT_FILENAME {
-		t.Fatal("conn.State must be ", STATE_WAIT_FILENAME, "not", conn.State)
+	if conn.State != bakapy.STATE_WAIT_FILENAME {
+		t.Fatal("conn.State must be ", bakapy.STATE_WAIT_FILENAME, "not", conn.State)
 	}
 }
 
 func TestStorageConn_ReadFilename_BadState(t *testing.T) {
 	reader := &DummyReader{}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_END
+	conn.State = bakapy.STATE_END
 	_, err := conn.ReadFilename()
 	if err == nil {
 		t.Fatal("error not returned")
@@ -111,7 +112,7 @@ func TestStorageConn_ReadFilename_ReadLenError(t *testing.T) {
 		err: errors.New("Oops"),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_FILENAME
+	conn.State = bakapy.STATE_WAIT_FILENAME
 	_, err := conn.ReadFilename()
 	if err == nil {
 		t.Fatal("error not returned")
@@ -127,7 +128,7 @@ func TestStorageConn_ReadFilename_ReadNameError(t *testing.T) {
 		data: []byte("0117too_short"),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_FILENAME
+	conn.State = bakapy.STATE_WAIT_FILENAME
 	_, err := conn.ReadFilename()
 	if err == nil {
 		t.Fatal("error not returned")
@@ -143,7 +144,7 @@ func TestStorageConn_ReadFilename_ReadBadLen(t *testing.T) {
 		data: []byte("hello"),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_FILENAME
+	conn.State = bakapy.STATE_WAIT_FILENAME
 	_, err := conn.ReadFilename()
 	if err == nil {
 		t.Fatal("error not returned")
@@ -160,7 +161,7 @@ func TestStorageConn_ReadFilename_Ok(t *testing.T) {
 		data: []byte("0017" + expectedFilename),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_FILENAME
+	conn.State = bakapy.STATE_WAIT_FILENAME
 	filename, err := conn.ReadFilename()
 
 	if err != nil {
@@ -170,15 +171,15 @@ func TestStorageConn_ReadFilename_Ok(t *testing.T) {
 	if filename != expectedFilename {
 		t.Fatalf("Bad filename '%s' expected '%s'", []byte(filename), []byte(expectedFilename))
 	}
-	if conn.State != STATE_WAIT_DATA {
-		t.Fatal("conn.State must be ", STATE_WAIT_DATA, "not", conn.State)
+	if conn.State != bakapy.STATE_WAIT_DATA {
+		t.Fatal("conn.State must be ", bakapy.STATE_WAIT_DATA, "not", conn.State)
 	}
 }
 
 func TestStorageConn_ReadContent_BadState(t *testing.T) {
 	reader := &DummyReader{}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_END
+	conn.State = bakapy.STATE_END
 
 	output := bytes.NewBuffer([]byte(""))
 
@@ -197,7 +198,7 @@ func TestStorageConn_ReadContent_ReadError(t *testing.T) {
 		err: errors.New("oops"),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_DATA
+	conn.State = bakapy.STATE_WAIT_DATA
 
 	output := bytes.NewBuffer([]byte(""))
 
@@ -216,7 +217,7 @@ func TestStorageConn_ReadContent_Ok(t *testing.T) {
 		data: []byte("such content"),
 	}
 	conn := NewStorageConn(reader, logging.MustGetLogger("connection.test"))
-	conn.State = STATE_WAIT_DATA
+	conn.State = bakapy.STATE_WAIT_DATA
 
 	output := bytes.NewBuffer(make([]byte, 1000))
 
@@ -229,7 +230,7 @@ func TestStorageConn_ReadContent_Ok(t *testing.T) {
 		t.Fatal("written != len(reader.data)", written, "!=", len(reader.data))
 	}
 
-	if conn.State != STATE_END {
-		t.Fatal("conn.State must be ", STATE_END, "not", conn.State)
+	if conn.State != bakapy.STATE_END {
+		t.Fatal("conn.State must be ", bakapy.STATE_END, "not", conn.State)
 	}
 }

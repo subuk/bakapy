@@ -7,20 +7,6 @@ import (
 	ospath "path"
 )
 
-type BackupScriptPool interface {
-	BackupScript(name string) ([]byte, error)
-}
-
-type NotifyScriptPool interface {
-	NotifyScript(name string) ([]byte, error)
-	NotifyScriptPath(name string) (string, error)
-}
-
-type ScriptPool interface {
-	BackupScriptPool
-	NotifyScriptPool
-}
-
 type DirectoryScriptPool struct {
 	root string
 	tmp  string

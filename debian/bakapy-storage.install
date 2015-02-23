@@ -1,0 +1,2 @@
+bin/bakapy-storage usr/bin
+storage.conf etc/bakapy

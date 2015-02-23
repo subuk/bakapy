@@ -12,12 +12,12 @@ import (
 
 type Config struct {
 	IncludeJobs  []string `yaml:"include_jobs"`
-	Listen       string
-	StorageDir   string `yaml:"storage_dir"`
-	MetadataDir  string `yaml:"metadata_dir"`
-	CommandDir   string `yaml:"command_dir"`
+	MetadataAddr string   `yaml:"metadata_addr"`
+	CommandDir   string   `yaml:"script_dir"`
+	Storages     map[string]string
 	Notificators []NotificatorConfig
 	Jobs         map[string]*JobConfig
+	Secret       string
 }
 
 type NotificatorConfig struct {
@@ -60,6 +60,7 @@ type JobConfig struct {
 	Gzip       bool
 	MaxAgeDays int           `yaml:"max_age_days"`
 	MaxAge     time.Duration `yaml:"max_age"`
+	Storage    string
 	Namespace  string
 	Host       string
 	Port       uint
