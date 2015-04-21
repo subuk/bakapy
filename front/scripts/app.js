@@ -29,6 +29,9 @@ bakapyApp.config(['$routeProvider',
       .when('/404', {
         templateUrl: '/404.html'
       })
+      .when('/reports', {
+        templateUrl: '/reports.html'
+      })
       .when('/:id', {
         templateUrl: '/partials/backup-details.html',
         controller: 'BackupDetailCtrl'
