@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html lang="ru" ng-app="bakapyApp">
 <head>
-  <title>Backapy web application</title>
+  <title>Bakapy web application</title>
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,700,400italic,700italic&subset=latin,cyrillic-ext">
   <link rel="stylesheet" href="/styles/kube.min.css" />
+  <link rel="stylesheet" href="/styles/gantt.css" />
+  <link rel="stylesheet" href="/styles/jquery-ui.min.css" />
   <link rel="stylesheet" href="/styles/app.css" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
 </head>
 <body class="app">
 
   <div ng-view></div>
 
   <span class="app-bg">
-    <img class="app-bg__img" src="/static/bakapy-arctic-fox.jpg" alt="" />
+    <img class="app-bg__img" src="/images/bakapy-arctic-fox.jpg" alt="" />
   </span><!-- /app-bg -->
 
   <script src="/scripts/jquery.min.js"></script>
+  <script src="/scripts/jquery-ui.min.js"></script>
   <script src="/scripts/kube.min.js"></script>
+
   <script src="/scripts/config.js"></script>
   <script src="/scripts/angular.min.js"></script>
   <script src="/scripts/angular-route.min.js"></script>
@@ -31,5 +36,8 @@
   <script src="/scripts/directives.js"></script>
   <script src="/scripts/services.js"></script>
   <script src="/scripts/bindonce.js"></script>
+
+  <script src="/scripts/gantt.js"></script>
+  <script src="/scripts/modal.js"></script>
 </body>
 </html>
