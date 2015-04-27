@@ -1,5 +1,5 @@
 .app {overflow-y:scroll;}
-  .app-wrapper {position:relative;z-index:1;min-width:840px;max-width:1000px;margin:0 auto;}
+  .app-wrapper {position:relative;z-index:1;min-width:840px;max-width:1600px;margin:0 auto;}
     .app-search {position:relative;top:16px;}
     .app-table {}
       .app-table-cell {vertical-align:middle;}
@@ -14,9 +14,9 @@
   .app-bg {position:fixed;top:0;right:0;bottom:0;left:0;overflow:hidden;}
     .app-bg__img {position:absolute;top:-9999px;bottom:-9999px;left:-9999px;right:-9999px;margin:auto;min-height:100%;min-width:100%;width:auto !important;height:auto !important;max-height:none !important;max-width:none !important;opacity:0.4;}
 
-  .app-modal {z-index:1;position:fixed;top:0;right:0;bottom:0;left:0;overflow:hidden;display:none;background-color:rgba(0,0,0, 0.3);}
+  .app-modal {z-index:2;position:fixed;top:0;right:0;bottom:0;left:0;overflow:hidden;display:none;background-color:rgba(0,0,0, 0.3);}
   .app-modal.app-state-active {display:block;}
-    .app-modal__box {position:fixed;top:50%;right:0;bottom:0;left:50%;overflow:hidden;width:800px;height:400px;margin-top:-200px;margin-left:-400px;background-color:rgb(255,255,255);box-shadow:0 1px 70px rgba(0,0,0, 0.5);}
+    .app-modal__box {position:fixed;top:50%;right:0;bottom:0;left:50%;overflow:auto;width:800px;height:400px;margin-top:-200px;margin-left:-400px;background-color:rgb(255,255,255);box-shadow:0 1px 70px rgba(0,0,0, 0.5);}
       .app-modal__header {position:relative;padding:30px 40px 5px;}
         .app-modal__title {}
       .app-modal__close {position:absolute;top:8px;right:12px;color:rgb(187,187,187);font-size:30px;font-weight:300;cursor:pointer;text-align:center;text-decoration:none;}

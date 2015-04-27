@@ -3,8 +3,8 @@
     .gantt-sidebar__line {position:relative;z-index:2;padding:0 10px;border-box:box-sizing;border-bottom:1px solid #e0e3e5;line-height:29px;}
     .gantt-sidebar__line:last-child {border-bottom:0;}
   .gantt-viewport {position:relative;z-index:1;overflow-x:hidden;overflow-y:hidden;padding:20px 0;}
-    .gantt-viewport:before {content:'';position:absolute;top:0;right:0;left:0;display:block;height:30px;border-top:1px solid #e0e3e5;border-bottom:1px solid #e0e3e5;}
-    .gantt-viewport:after {content:'';position:absolute;left:0;bottom:0;right:0;display:block;height:30px;border-top:1px solid #e0e3e5;border-bottom:1px solid #e0e3e5;}
+    .gantt-viewport:before {content:'';position:absolute;top:0;right:0;left:0;display:block;height:25px;border-top:1px solid #e0e3e5;border-bottom:1px solid #e0e3e5;}
+    .gantt-viewport:after {content:'';position:absolute;left:0;bottom:0;right:0;display:block;height:25px;border-top:1px solid #e0e3e5;border-bottom:1px solid #e0e3e5;}
     .gantt-chart {position:relative;padding:5px 0;float:right;}
       .gantt-chart__line {position:relative;height:30px;}
       .gantt-chart__line:nth-child(even) {background-color:#f0f1f2;}
@@ -18,6 +18,14 @@
       .gantt-guide:after {content:attr(data-label);position:absolute;z-index:2;top:100%;left:1px;display:block;color:#000;font-size:12px;line-height:12px;}
 
   .gantt-hidden {display:none;}
+
+
+.gantt-modal {overflow: auto;height: 255px;}
+.gantt-modal .gantt-chart {float: none;}
+.gantt-modal .gantt-sidebar {position:relative;float: left;width: 50%;}
+.gantt-modal .gantt-viewport {width: 50%;}
+.gantt-modal .gantt-sidebar__line {white-space: nowrap;text-overflow: ellipsis;overflow: hidden;}
+.gantt-modal .gantt-field {cursor: default;}
 
 
   :-webkit-full-screen {position:relative;overflow-y:scroll;width:100%;height:100%;background-color:#fff;}

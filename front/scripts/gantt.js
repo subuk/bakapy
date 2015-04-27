@@ -29,6 +29,15 @@
     this.$sidebarLineBlank = this.$sidebar.find('.JS-Gantt-SidebarLine');
     this.$modal = jQuery('.JS-Gannt-Modal');
 
+    //modal elements
+    this.$container = this.$modal.find('.JS-Modal-Container');
+    this.$viewportM = this.$modal.find('.JS-Gantt-m-Viewport');
+    this.$chartM = this.$viewportM.find('.JS-Gantt-m-Chart');
+    this.$chartLineBlankM = this.$chartM.find('.JS-Gantt-m-ChartLine').eq(0);
+    this.$sidebarM = this.$modal.find('.JS-Gantt-m-Sidebar');
+    this.$sidebarLineBlankM = this.$sidebarM.find('.JS-Gantt-m-SidebarLine');
+    this.$chartGuideBlankM = this.$modal.find('.JS-Gantt-m-ChartGuide').eq(0);
+
     this.data = {};
     this.startTime = new Date().getTime();
     this.endTime = 0;
@@ -58,7 +67,7 @@
     }
 
     this._drawChart();
-    this._drawTimeGrid();
+    this._drawTimeGrid(this.startTime, this.endTime, this.timePerPixel, this.timeStep, this.$chart, this.$chartGuideBlank, 'JS-Gantt-ChartGuide-hidden', 0);
 
     this._ready();
   };
@@ -156,18 +165,18 @@
         task = job[i];
 
         if (typeof task.StartTime !== 'undefined' && typeof task.EndTime !== 'undefined') {
-          taskPosition = this._getTaskPosition(task.StartTime, task.EndTime);
-          this._drawTask(taskPosition, task.TaskId, task.JobName);
+          taskPosition = this._getTaskPosition(task.StartTime, task.EndTime, this.startTime, this.timePerPixel);
+          this._drawTask(taskPosition, task.TaskId, task.JobName, this.$chart, this.$chartLineBlank, '.JS-Gantt-ChartField', 'JS-Gantt-ChartLine-hidden', this._niceFileSize(task.TotalSize));
         }
       }
 
       // draw job
-        this._drawJob(key, j);
+      this._drawJob(key, j, this.$sidebar, this.$sidebarLineBlank, 'JS-Gantt-SidebarLine-hidden');
     }
   };
 
-  Gantt.prototype._getTaskPosition = function _getTaskPosition(startTime, endTime) {
-    if (arguments.length !== 2) {
+  Gantt.prototype._getTaskPosition = function _getTaskPosition(startTime, endTime, startTimeCommon, timePerPixel) {
+    if (arguments.length !== 4) {
       return false;
     }
 
@@ -175,35 +184,37 @@
         taskEnd,
         startPosition,
         endPosition,
-        taskWidth;
+        taskWidth,
+        taskDuration;
 
-    taskStart = new Date(startTime).getTime() - this.startTime;
-    taskEnd = new Date(endTime).getTime() - this.startTime;
+    taskStart = new Date(startTime).getTime() - startTimeCommon;
+    taskEnd = new Date(endTime).getTime() - startTimeCommon;
+    taskDuration = moment.utc(taskEnd - taskStart).format("HH:mm:ss.SSS");
 
-    startPosition = Math.floor(taskStart / this.timePerPixel);
-    endPosition = Math.ceil(taskEnd / this.timePerPixel);
+    startPosition = Math.floor(taskStart / timePerPixel);
+    endPosition = Math.ceil(taskEnd / timePerPixel);
     taskWidth = endPosition - startPosition;
 
     if (taskWidth < 1) {
       taskWidth = 1;
     }
 
-    return {start: startPosition, width: taskWidth};
+    return {start: startPosition, width: taskWidth, duration: taskDuration};
   };
 
-  Gantt.prototype._drawTask = function _drawTask(taskPosition, taskId, jobName) {
-    if (arguments.length < 3) {
+  Gantt.prototype._drawTask = function _drawTask(taskPosition, taskId, jobName, chart, chartLineBlank, chartFieldClass, chartLineHiddenClass, fileSize) {
+    if (arguments.length < 8) {
       return false;
     }
 
-    var $line = this.$chartLineBlank.clone(),
-        $field = $line.find('.JS-Gantt-ChartField');
+    var $line = chartLineBlank.clone(),
+        $field = $line.find(chartFieldClass);
 
     $line
       .removeClass(this.cssHiddenChartLine)
-      .removeClass('JS-Gantt-ChartLine-hidden');
+      .removeClass(chartLineHiddenClass);
 
-    this.$chart.append($line);
+    chart.append($line);
 
     $field
       .css({
@@ -211,51 +222,58 @@
         'width': taskPosition.width + 'px'
       })
       .attr('data-taskId', taskId)
-      .attr('data-jobName', jobName);
+      .attr('data-jobName', jobName)
+      .attr('title', taskPosition.duration + '(' + fileSize + ')');
   };
 
-  Gantt.prototype._drawJob = function _drawJob(key, taskCount) {
-    if (arguments.length !== 2) {
+  Gantt.prototype._drawJob = function _drawJob(key, taskCount, sidebar, sidebarLineBlank, chartLineHiddenClass) {
+    if (arguments.length !== 5) {
       return false;
     }
 
-    var $line = this.$sidebarLineBlank.clone();
+    var $line = sidebarLineBlank.clone();
 
     $line
       .removeClass(this.cssHiddenChartLine)
-      .removeClass('JS-Gantt-ChartLine-hidden');
+      .removeClass(chartLineHiddenClass);
 
     $line.text(key);
+    $line.attr('title', key);
 
-    this.$sidebar.append($line);
+    sidebar.append($line);
 
     $line.css({
       'height': this.chartLineHeight * taskCount + 'px'
     });
   };
 
-  Gantt.prototype._drawTimeGrid = function _drawTimeGrid() {
+  Gantt.prototype._drawTimeGrid = function _drawTimeGrid(startTime, endTime, timePerPixel, timeStep, chart, chartGuideBlank, chartGuideHiddenClass, modalFl) {
     var $guide,
         guidePosition,
         date,
         i;
 
-    for (i = this.startTime; i < this.endTime; i += this.timeStep) {
-      $guide = this.$chartGuideBlank.clone();
-      guidePosition = (i - this.startTime) / this.timePerPixel;
-      date = new Date(i);
+    for (i = startTime; i < endTime; i += timeStep) {
+      $guide = chartGuideBlank.clone();
+      guidePosition = (i - startTime) / timePerPixel;
 
-      $guide.attr('data-label', date.getDate() + '/' + date.getMonth() + '/' + date.getFullYear());
+      if (!modalFl) {
+        date = new Date(i);
+
+        $guide.attr('data-label', date.getDate() + '/' + date.getMonth() + '/' + date.getFullYear()); 
+      } else {
+        $guide.attr('data-label', moment.utc(i).format("HH:mm:ss.SSS"));
+      }
+
       $guide
         .removeClass(this.cssHiddenChartGuide)
-        .removeClass('JS-Gantt-ChartGuide-hidden');
+        .removeClass(chartGuideHiddenClass);
 
-      this.$chart.append($guide);
+      chart.append($guide);
 
       $guide.css({'left': Math.ceil(guidePosition) + 'px'});
     }
   };
-
 
   Gantt.prototype._showDetails = function _showDetails($source) {
     if (!arguments.length) {
@@ -266,7 +284,8 @@
         jobName = $source.attr('data-jobName'),
         info,
         i,
-        j;
+        j,
+        content = '';
 
     if (taskId) {
       // search info
@@ -282,8 +301,101 @@
       this.$modal.trigger('modal:open');
 
       // show popup
+      this._formingPopupGrid(info.Files);
     }
   };
+
+  Gantt.prototype._formingPopupGrid = function _formingPopupGrid(files) {
+    if (!arguments.length) {
+      return false;
+    }
+
+    var i,
+        startTime = moment(files[0].StartTime).valueOf(),
+        endTime = moment(files[0].EndTime).valueOf(),
+        content = '',
+        timePerPixel,
+        filePosition,
+        file,
+        timeStep;
+
+    //clear chart and sidebar and guide
+    $('.JS-Gantt-m-ChartLine:not(.JS-Gantt-m-ChartLine-hidden)').remove();
+    $('.JS-Gantt-m-SidebarLine:not(.JS-Gantt-m-SidebarLine-hidden)').remove();
+    $('.JS-Gantt-m-ChartGuide:not(.JS-Gantt-m-ChartGuide-hidden)').remove();
+
+    //search start/end time
+    for (i = 0; i < files.length; i++) {
+      file = files[i];
+
+      if (typeof file.StartTime !== 'undefined' && typeof file.EndTime !== 'undefined') {
+        if (moment(file.StartTime).valueOf() < startTime) startTime = moment(file.StartTime).valueOf();
+        if (moment(file.EndTime).valueOf() > endTime) endTime = moment(file.EndTime).valueOf(); 
+      }
+    }
+
+    //scroll fix
+    endTime = endTime + (endTime-startTime)/20;
+
+    timePerPixel = (endTime - startTime) / this.$viewportM.width();
+
+    // draw files
+    for (i = 0; i < files.length; i++) {
+      file = files[i];
+
+      this._drawJob(file.Name, 1, this.$sidebarM, this.$sidebarLineBlankM, 'JS-Gantt-m-SidebarLine-hidden');
+
+      if (typeof file.StartTime !== 'undefined' && typeof file.EndTime !== 'undefined') {
+        filePosition = this._getTaskPosition(file.StartTime, file.EndTime, startTime, timePerPixel);
+        this._drawTask(filePosition, 0, file.Name, this.$chartM, this.$chartLineBlankM, '.JS-Gantt-m-ChartField', 'JS-Gantt-m-ChartLine-hidden', this._niceFileSize(file.Size));
+      }
+    }
+
+    timeStep = (endTime - startTime) / 3; //3 time point
+    this._drawTimeGrid(startTime, endTime, timePerPixel, timeStep, this.$chartM, this.$chartGuideBlankM, 'JS-Gantt-m-ChartGuide-hidden', 1);
+  };
+
+  Gantt.prototype._niceFileSize = function _niceFileSize(size) {
+
+    function zeroRemove(data)
+    {
+      return data.replace(/\.0{2}/, "").replace(/(\.[\d]{1})0{1,}/,"$1");
+    }
+
+    if(size <= 1024)
+    {
+      return size + " " + "B";
+    }
+    else
+    {
+      size = (size / 1024);
+      if(size <= 1024)
+      {
+        return zeroRemove(size.toFixed(2)) + " " + "KB";
+      }
+      else
+      {
+        size = (size / 1024);
+        if(size <= 1024)
+        {
+          return zeroRemove(size.toFixed(2)) + " " + "MB";
+        }
+        else
+        {
+          size = (size / 1024);
+          if(size <= 1024)
+          {
+            return zeroRemove(size.toFixed(2)) + " " + "GB";
+          }
+          else
+          {
+            size = (size / 1024);
+            return zeroRemove(size.toFixed(2)) + " " + "TB";
+          }
+        }
+      }
+    }
+  },
 
   namespace.Gantt = Gantt;
 }(this);

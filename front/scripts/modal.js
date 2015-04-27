@@ -24,6 +24,21 @@
 
     this.$close.on('click.JS-Modal', function() { _this._close.apply(_this, []); });
 
+    $('body').on("keyup", function(e) {
+      if ((e.keyCode == 27)) {
+        _this._close.apply(_this, []);
+      }
+    });
+
+    $('.JS-Gannt-Modal').click(function() {
+      if (_this.$element.hasClass('JS-Modal-active'))
+        _this._close.apply(_this, []);
+    });
+
+    $('.JS-Modal-Box').click(function(event){
+      event.stopPropagation();
+    });
+
     /* API. Events */
     this.$element.on('modal:setContent', function(e, data) { _this.setContent.apply(_this, [data]); });
     this.$element.on('modal:open', function() { _this.open.apply(_this, []); });
