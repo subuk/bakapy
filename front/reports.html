@@ -30,25 +30,42 @@
             <span class="gantt-guide JS-Gantt-ChartGuide JS-Gantt-ChartGuide-hidden gantt-hidden" data-label=""></span>
           </div>
         </div>
+
+        <div class="app-modal JS-Modal JS-Gannt-Modal">
+         <div class="app-modal__box JS-Modal-Box">
+            <div class="app-modal__header">
+              <h4 class="app-modal__title JS-Modal-Title">Task information</h4>
+              <a class="app-modal__close JS-Modal-Close" href="javascript:;" title="Закрыть">×</a>
+            </div>
+            <div class="app-modal__container JS-Modal-Container">
+
+              <div class="gantt gantt-modal JS-Gantt-m">
+                <div class="gantt-sidebar JS-Gantt-m-Sidebar">
+                  <div class="gantt-sidebar__line bold gantt-hidden JS-Gantt-m-SidebarLine JS-Gantt-m-SidebarLine-hidden"></div>
+                </div>
+                <div class="gantt-viewport JS-Gantt-m-Viewport">
+                  <div class="gantt-chart JS-Gantt-m-Chart">
+                    <div class="gantt-chart__line gantt-hidden JS-Gantt-m-ChartLine JS-Gantt-m-ChartLine-hidden">
+                      <span class="gantt-field JS-Gantt-m-ChartField" data-taskId="" data-jobName="">
+                        <span class="gantt-field__part JS-Gantt-m-ChartPart"></span>
+                      </span>
+                    </div>
+
+                    <span class="gantt-guide JS-Gantt-m-ChartGuide JS-Gantt-m-ChartGuide-hidden gantt-hidden" data-label=""></span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+         </div>
+        </div><!-- /app-modal -->
+
       </div>
     </div>
   </div>
 </div><!-- /app-wrapper -->
 
 <span class="app-loader" data-loading></span><!-- /app-loader -->
-
-<div class="app-modal JS-Modal JS-Gannt-Modal">
- <div class="app-modal__box">
-    <div class="app-modal__header">
-      <h4 class="app-modal__title JS-Modal-Title">Task information</h4>
-      <a class="app-modal__close JS-Modal-Close" href="javascript:;" title="Закрыть">×</a>
-    </div>
-    <div class="app-modal__container JS-Modal-Container">
-      {content}
-    </div>
- </div>
-</div><!-- /app-modal -->
-
 
 <script>
   jQuery(function() {
