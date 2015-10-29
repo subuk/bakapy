@@ -1,9 +1,10 @@
 language: go
+sudo: false
 install:
 - go get golang.org/x/tools/cmd/cover
 - go get github.com/mattn/goveralls
 script:
-- ./test.sh -v -covermode=count -coverprofile=coverage.out
+- make test
 - GOPATH="$GOPATH:`pwd`/vendor:`pwd`" $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN || true
 go:
 - '1.4'
