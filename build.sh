@@ -2,4 +2,4 @@
 
 export GOPATH="`pwd`/vendor:`pwd`"
 
-go install bakapy-scheduler && go install bakapy-show-meta && go install bakapy-run-job
+go install bakapy/cmd/bakapy-scheduler && go install bakapy/cmd/bakapy-show-meta && go install bakapy/cmd/bakapy-run-job
