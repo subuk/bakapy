@@ -22,7 +22,7 @@ Bakapy web interface files
 %setup -q
 
 %build
-./build.sh
+make
 
 %install
 install -m 755 -d %{buildroot}/usr/bin
