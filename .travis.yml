@@ -8,6 +8,7 @@ script:
 - GOPATH="$GOPATH:`pwd`/vendor:`pwd`" $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN || true
 go:
 - '1.4'
+- '1.5'
 - 'tip'
 env:
   global:
