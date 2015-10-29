@@ -40,12 +40,7 @@ func (j *TestJoberPushFile) AddJob(currentJob *StorageCurrentJob) {
 }
 
 func (j *TestJoberPushFile) WaitJob(taskId TaskId) {
-	for {
-		if len(j.ch) == 0 {
-			break
-		}
-		time.Sleep(time.Nanosecond)
-	}
+	time.Sleep(time.Second * 1)
 }
 
 type TestOkExecutor struct{}
@@ -204,7 +199,6 @@ func TestJob_Run_MetadataFilesAdded(t *testing.T) {
 		"test_fail", cfg, "127.0.0.1:9999",
 		".", jober, executor,
 	)
-
 	m := job.Run()
 
 	if !m.Success {
