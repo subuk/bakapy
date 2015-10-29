@@ -35,7 +35,7 @@ func TestRunJob_MetadataCreated(t *testing.T) {
 func TestRunJob_MetadataDirDoesNotExist(t *testing.T) {
 	gConfig := NewConfig()
 	gConfig.Listen = "1.1.1.1:1234"
-	gConfig.MetadataDir = "/DOES_NOT_EXIST"
+	gConfig.MetadataDir = "/dev/null/__DOES_NOT_EXIST"
 	gConfig.CommandDir, _ = ioutil.TempDir("", "")
 	defer os.RemoveAll(gConfig.CommandDir)
 

@@ -1,0 +1,12 @@
+# The container definition we want to use for developing our app
+box: golang
+build:
+  steps:
+    - script:
+        name: build
+        code: |
+          make all
+    - script:
+        name: test
+        code: |
+          make test
