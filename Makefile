@@ -22,4 +22,12 @@ racetest:
 clean:
 	rm -rf bin/ pkg/ vendor/bin vendor/pkg
 
-.PHONY: bin/bakapy-scheduler bin/bakapy-show-meta bin/bakapy-run-job test racetest clean
+package-%: Dockerfile.%
+	docker build -f "Dockerfile.$*" -t "bakapy-build-$*" .
+	rm -rf "native-packages/$*"
+	mkdir -p "native-packages/$*"
+	docker run --rm "bakapy-build-$*" /bin/bash -c 'tar -C /packages -cf - .' | tar -C "./native-packages/$*" -xf -
+
+package-all: package-trusty package-precise package-wheezy package-centos6
+
+.PHONY: bin/bakapy-scheduler bin/bakapy-show-meta bin/bakapy-run-job test racetest clean package-all package-%

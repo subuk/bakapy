@@ -4,7 +4,6 @@
 /bakapy-scheduler
 *.sublime-project
 *.sublime-workspace
-/Dockerfile
 /debian/bakapy.debhelper.log
 /debian/bakapy.*.debhelper
 /debian/bakapy.substvars
