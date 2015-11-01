@@ -3,21 +3,10 @@ package bakapy
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 	"time"
 )
-
-type DummyFileInfo struct {
-	name string
-	size int64
-}
-
-func (i *DummyFileInfo) Name() string       { return i.name }     // base name of the file
-func (i *DummyFileInfo) Size() int64        { return i.size }     // length in bytes for regular files; system-dependent for others
-func (i *DummyFileInfo) Mode() os.FileMode  { return 0755 }       // file mode bits
-func (i *DummyFileInfo) ModTime() time.Time { return time.Now() } // modification time
-func (i *DummyFileInfo) IsDir() bool        { return false }      // abbreviation for Mode().IsDir()
-func (i *DummyFileInfo) Sys() interface{}   { return nil }        // underlying data source (can return nil)
 
 func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	//
@@ -53,6 +42,8 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	(&JobMetadata{
 		TaskId:     "one",
 		Namespace:  "wow",
+		JobName:    "testjob1",
+		Success:    true,
 		ExpireTime: time.Now().Add(threeDays),
 		Files: []JobMetadataFile{
 			{"file3.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
@@ -72,6 +63,8 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	m1f.Close()
 	(&JobMetadata{
 		Namespace:  "hello",
+		JobName:    "testjob2",
+		Success:    true,
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
 		Files: []JobMetadataFile{
 			{"file1.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
@@ -86,6 +79,8 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	m3f.Close()
 	(&JobMetadata{
 		Namespace:  "xxx",
+		JobName:    "testjob2",
+		Success:    true,
 		ExpireTime: time.Date(1970, 1, 1, 1, 1, 1, 1, time.UTC),
 		Files: []JobMetadataFile{
 			{"file5.txt", 0, "1.1.1.1", (time.Time{}), (time.Time{})},
@@ -108,19 +103,20 @@ func TestStorage_CleanupExpired_Behavior(t *testing.T) {
 	}
 
 	//
-	// Expect corrupt metadata file still exist
+	// Expect corrupt metadata file moved to other directory
 	//
-	_, err = os.Stat(m4f_corrupt.Name())
+	_, m4f_corrupt_filename := path.Split(m4f_corrupt.Name())
+	_, err = os.Stat(path.Join(config.MetadataDir+"_corrupted", m4f_corrupt_filename))
 	if err != nil {
 		t.Fatal("cannot stat corrupt metadata file:", err)
 	}
 
 	//
-	// Expect expired metadata file with manually deleted files still present
+	// Expect expired metadata file with manually deleted files removed
 	//
 	_, err = os.Stat(m3f.Name())
-	if err != nil {
-		t.Fatal("cannot stat expired metadata file without data files:", err)
+	if err == nil {
+		t.Fatal("expired metadata file without data files still present", err)
 	}
 
 	//

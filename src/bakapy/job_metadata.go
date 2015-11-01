@@ -24,6 +24,20 @@ func (m *JobMetadataFile) String() string {
 		m.Name, m.Size, m.StartTime, m.EndTime)
 }
 
+type MetadataSortByStartTime []JobMetadata
+
+func (slice MetadataSortByStartTime) Len() int {
+	return len(slice)
+}
+
+func (slice MetadataSortByStartTime) Swap(i, j int) {
+	slice[i].StartTime, slice[j].StartTime = slice[j].StartTime, slice[i].StartTime
+}
+
+func (slice MetadataSortByStartTime) Less(i, j int) bool {
+	return slice[i].StartTime.Unix() < slice[j].StartTime.Unix()
+}
+
 type JobMetadata struct {
 	JobName    string
 	Gzip       bool
@@ -43,6 +57,8 @@ type JobMetadata struct {
 	Output     []byte
 	Errput     []byte
 	Config     JobConfig
+	Corrupted  bool   `json:"-"`
+	Filepath   string `json:"-"`
 }
 
 func (metadata *JobMetadata) Duration() time.Duration {
