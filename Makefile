@@ -5,13 +5,13 @@ export GOPATH = $(CURDIR)/vendor:$(CURDIR)
 all: bin/bakapy-scheduler bin/bakapy-show-meta bin/bakapy-run-job
 
 bin/bakapy-scheduler:
-	$(GO) install bakapy/cmd/bakapy-scheduler
+	$(GO) install -ldflags "-B 0x$$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" bakapy/cmd/bakapy-scheduler
 
 bin/bakapy-show-meta:
-	$(GO) install bakapy/cmd/bakapy-show-meta
+	$(GO) install -ldflags "-B 0x$$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" bakapy/cmd/bakapy-show-meta
 
 bin/bakapy-run-job:
-	$(GO) install bakapy/cmd/bakapy-run-job
+	$(GO) install -ldflags "-B 0x$$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" bakapy/cmd/bakapy-run-job
 
 test:
 	$(GO) test -covermode=count -coverprofile=coverage.out --run=. bakapy
