@@ -73,6 +73,12 @@ test -f /sbin/initctl && /sbin/initctl stop bakapy &>/dev/null
 
 
 %changelog
+* Wed Jan 18 2017 16:55:34 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.9.1-1
+- Cleanup expired job files only if last task was successful
+- Bump go version to 1.5
+- Build with makefile
+- Gantt diagram for web interface
+
 * Sun Jan 04 2015 15:12:09 +0300 Matvey Kruglov <kubuzzzz@gmail.com> 0.8.1-1
 - Web interface performance improvements
 - Fix job scheduling
