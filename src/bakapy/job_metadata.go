@@ -31,7 +31,7 @@ func (slice MetadataSortByStartTime) Len() int {
 }
 
 func (slice MetadataSortByStartTime) Swap(i, j int) {
-	slice[i].StartTime, slice[j].StartTime = slice[j].StartTime, slice[i].StartTime
+	slice[i], slice[j] = slice[j], slice[i]
 }
 
 func (slice MetadataSortByStartTime) Less(i, j int) bool {
